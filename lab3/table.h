@@ -4,11 +4,12 @@
 #include <stdlib.h>
 
 typedef unsigned int key_type;
-typedef unsigned int variable_type;
+typedef unsigned variable_type;
 
 typedef struct Item
 {
 	variable_type* data;
+	//Key** key_of_variable;
 } Item;
 
 typedef struct Key
@@ -16,7 +17,7 @@ typedef struct Key
 	key_type* key;
 	key_type* parent_key;
 
-	Item* key_variable;
+	Item* variable;
 } Key;
 
 typedef struct Table
@@ -28,11 +29,13 @@ typedef struct Table
 } Table;
 
 Table* table_init(size_t capacity);
-char table_add(Table* t, key_type* key, key_type* parent_key, variable_type* data);
-char table_delete(Table* t, key_type* key);
-Item* table_search(Table* t, key_type* key);
+char table_add(Table* t, key_type key, key_type parent_key, variable_type data);
+char table_delete_by_key(Table* t, key_type key);
+size_t table_search_by_key(Table* t, key_type key);
+size_t table_search_by_parent_key(Table* t, key_type parent_key);
+size_t table_search_first_with_parent_key(Table* t, key_type parent_key);
 void table_print(Table* t); // depend on the specific implementation of the table
 Table* table_init_from_file(char* file_name);
-Table* table_search_by_parent_key(Table* t, key_type* parent_key);
+Key* table_elem_alloc(Key* k);
 
 #endif
