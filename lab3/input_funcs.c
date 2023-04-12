@@ -4,62 +4,156 @@
 #include <string.h>
 #include "table.h"
 
-char* readline()
+char menu(Table* t)
 {
-	char* ptr = (char*) malloc(1);
-	char buf[81];
-	int n, len = 0;
-	*ptr = '\0';
-
-	do
+	char flag;
+	char command = 0;
+	unsigned int key, parent_key, data;
+	while (command != 6)
 	{
-		n = scanf("%80[^\n]", buf);
+		print_menu();
+		command = get_numb_greater_zero(&flag);
 
-		if (n < 0)
+		if (flag == -2)
 		{
-			free(ptr);
-			ptr = NULL;
-			continue;
+			printf("End of input\n");
+			return INPUT_ERROR;
 		}
-
-		if (n == 0)
+		else if (command == 1)
 		{
-			scanf("%*c");
-		}
-		else
-		{
-			len += strlen(buf);
-			ptr = (char*) realloc(ptr, len+1);
-			if (ptr == NULL)
+			if (get_params_for_add(t, &key, &parent_key, &data) == INPUT_ERROR)
 			{
-				return NULL;
+				return INPUT_ERROR;
 			}
 
-			ptr = strcat(ptr, buf);
+			if (table_add(t, key, parent_key, data) == ADD_ERROR)
+			{
+				printf("Can't add this elem\n");
+			}
 		}
-	} while (n > 0);
+		else if(command == 2)
+		{
+			if (set_item_numb(&key, "input key: ") == INPUT_ERROR)
+			{
+				return INPUT_ERROR;
+			}
+			
+			if (table_delete_by_key(t, key) == FIND_ERROR)
+			{
+				printf("Can't remove this elem\n");
+			}
+		}
+		else if (command == 3)
+		{
+			if (set_item_numb(&key, "input key: ") == INPUT_ERROR)
+			{
+				return INPUT_ERROR;
+			}
 
-	return ptr;
+			Item ans = get_elem_with_this_key(t, key);
+			
+			if (ans.data == NULL)
+			{
+				printf("Bad key, there is no elem in thos table\n");
+			}
+			else
+			{
+				printf("Elem - %d\n", *ans.data);
+				getchar();
+			}
+		}
+		else if (command == 4)
+		{
+			printf("\n");
+			table_print(t);
+		}
+		else if (command == 5)
+		{
+			if (set_item_numb(&parent_key, "input parent key: ") == INPUT_ERROR)
+			{
+				return INPUT_ERROR;
+			}
+
+			Table* ans = table_search_by_parent_key(t, parent_key);
+			
+			table_print(ans);
+			table_free(ans);
+		}
+		printf("\n");
+	}
+
+	return OK;
 }
 
-//char get_key(unsigned int* key)
-//{
-//	(*key) = get_numb_greater_zero();
-//	if ( (*key) == -2)
-//	{
-//
-//	}
-//}
+char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, unsigned int* data)
+{
+	if (set_item_numb(key, "Input key: ") == INPUT_ERROR)
+	{
+		return INPUT_ERROR;
+	}
+	while ()
+	{
+		if (c == INPUT_ERROR)
+		{
+			return INPUT_ERROR;
+		}
 
-//char get_parent_key(unsigned int* parent_key)
-//{
-//	
-//}
+		if (table_search_by_key(t, *key) != t->size)
+		{
+			printf("Bad input, try again\n");
+			continue;
+		}
+	}
 
-//char get_data(unsigned int* data)
-//{
-//
-//}
+	if (set_item_numb(parent_key, "Input parent key: ") == INPUT_ERROR)
+	{
+		return INPUT_ERROR;
+	}
+
+	if (table_search_by_key(t, *parent_key) == t->size && *parent_key != 0 && t->base_key)
+	{
+		return ADD_ERROR;
+	}
+
+	if (set_item_numb(data, "Input data: ") == INPUT_ERROR)
+	{
+		return INPUT_ERROR;
+	}
+}
+
+char set_item_numb(unsigned int* data, const char* s)
+{
+	char flag;
+	printf("%s", s);
+	while ( (*data = get_numb_greater_zero(&flag)) < 0)
+	{
+		if (flag == -2)
+		{
+			printf("End of input\n");
+			return INPUT_ERROR;
+		}
+		else if (flag == -1)
+		{
+			printf("Bad input, try again\n");
+		}
+
+		printf("Enter max table size: ");
+		*data = get_numb_greater_zero(&flag);
+	}
+
+	return flag;
+}
+
+void print_menu()
+{
+	printf("1 - add element\n");
+	printf("2 - delete element\n");
+	printf("3 - search by key\n");
+	printf("4 - show table\n");
+	printf("5 - search all elems with parent key\n");
+	printf("6 - exit\n\n");
+	printf("input command: ");
+}
 
 size_t get_numb_greater_zero(char* flag)
 {
@@ -73,11 +167,13 @@ size_t get_numb_greater_zero(char* flag)
 			{
 				c = getchar();
 			}
-
-			return -1;
+			
+			*flag = -1;
+			return 0;
 		}
 		else if (c == '\n')
 		{
+			*flag = 0;
 			return ans/10;
 		}
 		else
@@ -87,5 +183,6 @@ size_t get_numb_greater_zero(char* flag)
 		}
 	}
 
-	return -2;
+	*flag = -2;
+	return ans;
 }

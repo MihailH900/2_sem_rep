@@ -18,7 +18,7 @@ int main()
 	t = table_init(capacity, 0);
 
 	char c = 2;
-	while (c != OK && c != INPUT_ERROR)
+	while (c != 1 && c != 0)
 	{
 		c = menu(t);
 	}

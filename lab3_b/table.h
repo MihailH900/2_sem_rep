@@ -6,17 +6,12 @@
 typedef unsigned int key_type;
 typedef unsigned int variable_type;
 
-typedef struct Item
-{
-	variable_type* data;
-} Item;
-
 typedef struct Key
 {
 	key_type* key;
 	key_type* parent_key;
-
-	Item* variable;
+	
+	size_t offset;
 } Key;
 
 typedef struct Table
@@ -27,15 +22,10 @@ typedef struct Table
 	key_type base_key;
 
 	Key** key_arr;
-} Table;
 
-typedef enum Table_codes
-{
-	OK,
-	ADD_ERROR,
-	FIND_ERROR
-	
-} Table_codes;
+	FILE* f;
+	char* file_name;
+} Table;
 
 Table* table_init(size_t capacity, key_type base_key);
 Table* table_search_by_parent_key(Table* t, key_type parent_key);

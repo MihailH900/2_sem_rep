@@ -68,9 +68,19 @@ Table* table_search_by_parent_key(Table* t, key_type parent_key)
 
 char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 {
+	if (table_search_by_key(t, key) != -1)
+	{
+		return 2;
+	}
+
+	if (table_search_by_key(t, parent_key) == -1 && parent_key != 0 && t->base_key != parent_key)
+	{
+		return 2;
+	}
+
 	if (t->size == t->capacity)
 	{
-		return ADD_ERROR;
+		return 2;
 	}
 
 	Key** k1_ptr = t->key_arr+t->size-1;
@@ -105,15 +115,15 @@ char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 	*(t->key_arr[i]->variable->data) = data;
 	t->size++;
 
-	return OK;
+	return 0;
 }
 
 char table_delete_by_key(Table* t, key_type key)
 {
 	size_t i, pos_p_elem = table_search_first_with_parent_key(t, key);
-	if ( (i = table_search_by_key(t, key)) == t->size && t->base_key != key)
-	{ 
-		return FIND_ERROR;
+	if ( (i = table_search_by_key(t, key)) == -1 && t->base_key != key)
+	{
+		return 2;
 	}
 
 	Key** k1_ptr = t->key_arr + i;
@@ -142,21 +152,17 @@ char table_delete_by_key(Table* t, key_type key)
 
 	if (count == t->size)
 	{
-		return OK;
+		return 0;
 	}
 
 	//printf("%d %d\n", *( (*k2_ptr)->key ), *( (*k2_ptr)->parent_key ) );
 
 	if (count == 0)
 	{
-		return OK;
+		return 0;
 	}
 
 	//printf("%d\n", pos_p_elem);
-	if (pos_p_elem > 0)
-	{
-		pos_p_elem--;
-	}
 	k1_ptr = t->key_arr + pos_p_elem;
 	size_t c = 0;
 	while ( *( (*k1_ptr)->parent_key ) == key)
@@ -171,12 +177,12 @@ char table_delete_by_key(Table* t, key_type key)
 
 	if (c == 0)
 	{
-		return OK;
+		return 0;
 	}
 
 	swap(k2_ptr, t->key_arr+pos_p_elem, sizeof(k1_ptr)*c);
 
-	return OK;
+	return 0;
 }
 
 size_t table_search_by_key(Table* t, key_type key)
@@ -190,7 +196,7 @@ size_t table_search_by_key(Table* t, key_type key)
 		}
 	}
 
-	return t->size;
+	return -1;
 }
 
 Item get_elem_with_this_key(Table* t, key_type key)
@@ -229,12 +235,12 @@ size_t table_search_first_with_parent_key(Table* t, key_type parent_key)
 	
 	if (right >= t->size)
 	{
-		return t->size;
+		return -1;
 	}
 
 	if ( *(t->key_arr[right]->parent_key) != parent_key)
 	{
-		return t->size;
+		return -1;
 	}	
 
 	return right;
