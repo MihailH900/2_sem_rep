@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <limits.h>
 #include "table.h"
 
 char menu(Table* t)
@@ -12,7 +14,7 @@ char menu(Table* t)
 	while (command != 6)
 	{
 		print_menu();
-		command = get_numb_greater_zero(&flag);
+		command = get_size_t_numb(&flag);
 
 		if (flag == INPUT_ERROR)
 		{
@@ -53,7 +55,7 @@ char menu(Table* t)
 		{
 			flag = 1;
 			count = 1;
-			flag = set_item_numb(&key, "Input key: ");
+			flag = set_unsigned_item_numb(&key, "Input key: ");
 			while (count < 3)
 			{
 				if (flag == INPUT_ERROR)
@@ -63,7 +65,7 @@ char menu(Table* t)
 
 				if (flag == BAD_INPUT)
 				{
-					flag = set_item_numb(&key, "Input_key: ");
+					flag = set_unsigned_item_numb(&key, "Input_key: ");
 					count++;
 					continue;
 				}
@@ -71,7 +73,7 @@ char menu(Table* t)
 				if ( table_search_by_key(t, key) == t->size && t->base_key != key)
 				{
 					printf("Can't find this key in table. Try again\n");
-					flag = set_item_numb(&key, "Input key: ");
+					flag = set_unsigned_item_numb(&key, "Input key: ");
 					count++;
 					continue;
 				}
@@ -92,7 +94,7 @@ char menu(Table* t)
 		{
 			flag = 1;
 			count = 1;
-			flag = set_item_numb(&key, "Input key: ");
+			flag = set_unsigned_item_numb(&key, "Input key: ");
 			while (count < 3)
 			{
 				if (flag == INPUT_ERROR)
@@ -102,7 +104,7 @@ char menu(Table* t)
 
 				if (flag == BAD_INPUT)
 				{
-					flag = set_item_numb(&key, "Input_key: ");
+					flag = set_unsigned_item_numb(&key, "Input_key: ");
 					count++;
 					continue;
 				}
@@ -124,6 +126,7 @@ char menu(Table* t)
 			else
 			{
 				printf("\nElem - %d\n", *ans.data);
+				free(ans.data);
 			}
 		}
 		else if (command == 4)
@@ -135,7 +138,7 @@ char menu(Table* t)
 		{
 			flag = 1;
 			count = 1;
-			flag = set_item_numb(&parent_key, "Input parent key: ");
+			flag = set_unsigned_item_numb(&parent_key, "Input parent key: ");
 			while (count < 3)
 			{
 				if (flag == INPUT_ERROR)
@@ -145,7 +148,7 @@ char menu(Table* t)
 
 				if (flag == BAD_INPUT)
 				{
-					flag = set_item_numb(&parent_key, "Input parent key: ");
+					flag = set_unsigned_item_numb(&parent_key, "Input parent key: ");
 					count++;
 					continue;
 				}
@@ -178,7 +181,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 	char flag;
 	char count = 1;
 
-	flag = set_item_numb(key, "Input key: ");
+	flag = set_unsigned_item_numb(key, "Input key: ");
 	while (count < 3)
 	{
 		if (flag == INPUT_ERROR)
@@ -188,7 +191,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 		}
 		else if (flag == BAD_INPUT)
 		{
-			flag = set_item_numb(key, "Input key: ");
+			flag = set_unsigned_item_numb(key, "Input key: ");
 			count++;
 			continue;
 		}
@@ -196,7 +199,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 		if (table_search_by_key(t, *key) != t->size)
 		{
 			printf("Bad input, there is a same key in table, try again\n");
-			flag = set_item_numb(key, "Input key: ");
+			flag = set_unsigned_item_numb(key, "Input key: ");
 			count++;
 			continue;
 		}
@@ -210,7 +213,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 	}
 
 	count = 1;
-	flag = set_item_numb(parent_key, "Input parent key: ");
+	flag = set_unsigned_item_numb(parent_key, "Input parent key: ");
 	while (count < 3)
 	{
 		if (flag == INPUT_ERROR)
@@ -219,7 +222,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 		}
 		else if (flag == BAD_INPUT)
 		{
-			flag = set_item_numb(parent_key, "Input parent key: ");
+			flag = set_unsigned_item_numb(parent_key, "Input parent key: ");
 			count++;
 			continue;
 		}
@@ -227,7 +230,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 		if (table_search_by_key(t, *parent_key) == t->size && *parent_key != 0 && *parent_key != t->base_key)
 		{
 			printf("Bad input, there is no this parent key or this key isn't base key. Try again\n");
-			flag = set_item_numb(parent_key, "Input parent key: ");
+			flag = set_unsigned_item_numb(parent_key, "Input parent key: ");
 			count++;
 			continue;
 		}
@@ -241,7 +244,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 	}
 
 	count = 1;
-	flag = set_item_numb(data, "Input data: ");
+	flag = set_unsigned_item_numb(data, "Input data: ");
 	while (count < 3)
 	{
 		count++;
@@ -253,7 +256,7 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 		if (flag == BAD_INPUT)
 		{
 			printf("Bad input, try again\n");
-			flag = set_item_numb(data, "Input data: ");
+			flag = set_unsigned_item_numb(data, "Input data: ");
 			count++;
 			continue;
 		}
@@ -269,14 +272,12 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 	return OK;
 }
 
-
-
-char set_item_numb(unsigned int* data, const char* s)
+char set_size_t_item_numb(size_t* data, const char* s)
 {
 	char flag;
 	char count = 1;
 	printf("%s", s);
-	(*data) = get_numb_greater_zero(&flag);
+	(*data) = get_size_t_numb(&flag);
 	while (count < 3 )
 	{
 		if (flag == INPUT_ERROR)
@@ -289,7 +290,7 @@ char set_item_numb(unsigned int* data, const char* s)
 			printf("Bad input, try again\n");
 			
 			printf("%s", s);
-			*data = get_numb_greater_zero(&flag);
+			*data = get_size_t_numb(&flag);
 			count++;
 			continue;
 		}
@@ -306,6 +307,42 @@ char set_item_numb(unsigned int* data, const char* s)
 	return OK;
 }
 
+char set_unsigned_item_numb(unsigned int* data, const char* s)
+{
+	char flag;
+	char count = 1;
+	printf("%s", s);
+	(*data) = get_unsigned_numb(&flag);
+	while (count < 3 )
+	{
+		if (flag == INPUT_ERROR)
+		{
+			printf("End of input\n");
+			return INPUT_ERROR;
+		}
+		else if (flag == BAD_INPUT)
+		{
+			printf("Bad input, try again\n");
+			
+			printf("%s", s);
+			*data = get_unsigned_numb(&flag);
+			count++;
+			continue;
+		}
+
+		break;
+	}
+
+	if (count == 3)
+	{
+		printf("Too big numb of bad input\n\n");
+		return BAD_INPUT;
+	}
+
+	return OK;
+}
+
+
 void print_menu()
 {
 	printf("1 - add element\n");
@@ -321,7 +358,17 @@ size_t get_size_t_numb(char* flag)
 {
 	char c;
 	size_t ans = 0;
-	size_t count = 0;
+	size_t size = log10(ULLONG_MAX)+1;
+	size_t help = ULLONG_MAX;
+
+	char mass_1[21];
+	for (int i = size-1; i >= 0; i--)
+	{
+		mass_1[i] = help%10;
+		help /= 10;
+	}
+
+	size_t i = 0, count = 0, s = 0;
 	while ( (c = getchar()) != EOF)
 	{
 		if ( (c != '\n') && (c < '0' || c > '9') )
@@ -336,13 +383,32 @@ size_t get_size_t_numb(char* flag)
 		}
 		else if (c == '\n')
 		{
+
+			if (count > size)
+			{
+				*flag = BAD_INPUT;
+				return ans;
+			}
+			else if (count == size)
+			{
+				if (s == 1)
+				{
+					return BAD_INPUT;
+				}
+			}
+
 			*flag = OK;
-			return ans/10;
+			return ans;
 		}
 		else
 		{
+			ans *= 10;
+			if ( (c-'0') > mass_1[i])
+			{
+				s = 1;
+			}
+			count++;
 			ans += (c - '0');
-			ans *= 10;	
 		}
 	}
 
@@ -350,10 +416,21 @@ size_t get_size_t_numb(char* flag)
 	return ans;
 }
 
-unsigned int get_size_t_numb(char* flag)
+unsigned int get_unsigned_numb(char* flag)
 {
 	char c;
 	unsigned int ans = 0;
+	
+	size_t size = log10(UINT_MAX);
+	size_t help = UINT_MAX;
+
+	char mass_2[21];
+	for (int i = size-1; i >= 0; i--)
+	{
+		mass_2[i] = help%10;
+		help /= 10;
+	}
+	size_t i = 0, count = 0, s = 0;
 	while ( (c = getchar()) != EOF)
 	{
 		if ( (c != '\n') && (c < '0' || c > '9') )
@@ -368,13 +445,31 @@ unsigned int get_size_t_numb(char* flag)
 		}
 		else if (c == '\n')
 		{
+			if (count > size)
+			{
+				*flag = BAD_INPUT;
+				return ans;
+			}
+			else if (count == size)
+			{
+				if (s == 1)
+				{
+					return BAD_INPUT;
+				}
+			}
 			*flag = OK;
-			return ans/10;
+			return ans;
 		}
 		else
 		{
+
+			ans *= 10;
+			if ( (c-'0') > mass_2[i])
+			{
+				s = 1;
+			}
+			count++;
 			ans += (c - '0');
-			ans *= 10;	
 		}
 	}
 

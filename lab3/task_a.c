@@ -6,7 +6,7 @@ int main()
 {
 	Table* t = NULL;
 	size_t capacity = 0;
-	char flag = set_item_numb(&capacity, "Enter max table size: ");
+	char flag = set_size_t_item_numb(&capacity, "Enter max table size: ");
 
 	if (flag == INPUT_ERROR)
 	{
