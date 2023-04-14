@@ -31,9 +31,11 @@ typedef struct Table
 
 typedef enum Table_codes
 {
-	OK,
-	ADD_ERROR,
-	FIND_ERROR
+	TABLE_OK,
+	TABLE_ADD_KEY_ERROR,
+	TABLE_ADD_PARENT_KEY_ERROR,
+	TABLE_ADD_SIZE_ERROR,
+	TABLE_FIND_ERROR
 	
 } Table_codes;
 

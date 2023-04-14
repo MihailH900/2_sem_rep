@@ -6,13 +6,17 @@ int main()
 {
 	Table* t = NULL;
 	size_t capacity = 0;
-	char flag;
+	char flag = set_item_numb(&capacity, "Enter max table size: ");
 
-	if (set_item_numb(&capacity, "Enter max table size: ") == 1)
+	if (flag == INPUT_ERROR)
 	{
-		return 1;
+		return INPUT_ERROR;
 	}
-
+	else if (flag == BAD_INPUT)
+	{
+		printf("Sorry, too big numb of wrong input\n");
+		return 0;
+	}
 	printf("\n");
 
 	t = table_init(capacity, 0);

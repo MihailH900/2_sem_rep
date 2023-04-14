@@ -6,13 +6,16 @@
 
 typedef enum Input_codes
 {
-	INPUT_ERROR = 1
+	BAD_INPUT = -2,
+	INPUT_ERROR,
+	OK
 } Input_codes;
 
 char menu(Table* t);
 char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, unsigned int* data);
 char set_item_numb(unsigned int* item, const char* s);
 void print_menu();
-size_t get_numb_greater_zero(char* flag);
+size_t get_size_t_numb(char* flag);
+unsigned int get_size_t_numb(char* flag);
 
 #endif

@@ -68,9 +68,20 @@ Table* table_search_by_parent_key(Table* t, key_type parent_key)
 
 char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 {
+	
+	if (table_search_by_key(t, key) != t->size)
+	{
+		return TABLE_ADD_KEY_ERROR;
+	}
+
+	if (table_search_by_key(t, parent_key) == t->size && parent_key != 0 && parent_key != t->base_key)
+	{
+		return TABLE_ADD_PARENT_KEY_ERROR;
+	}
+
 	if (t->size == t->capacity)
 	{
-		return ADD_ERROR;
+		return TABLE_ADD_SIZE_ERROR;
 	}
 
 	Key** k1_ptr = t->key_arr+t->size-1;
@@ -105,7 +116,7 @@ char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 	*(t->key_arr[i]->variable->data) = data;
 	t->size++;
 
-	return OK;
+	return TABLE_OK;
 }
 
 char table_delete_by_key(Table* t, key_type key)
@@ -113,7 +124,7 @@ char table_delete_by_key(Table* t, key_type key)
 	size_t i, pos_p_elem = table_search_first_with_parent_key(t, key);
 	if ( (i = table_search_by_key(t, key)) == t->size && t->base_key != key)
 	{ 
-		return FIND_ERROR;
+		return TABLE_FIND_ERROR;
 	}
 
 	Key** k1_ptr = t->key_arr + i;
@@ -142,14 +153,14 @@ char table_delete_by_key(Table* t, key_type key)
 
 	if (count == t->size)
 	{
-		return OK;
+		return TABLE_OK;
 	}
 
 	//printf("%d %d\n", *( (*k2_ptr)->key ), *( (*k2_ptr)->parent_key ) );
 
 	if (count == 0)
 	{
-		return OK;
+		return TABLE_OK;
 	}
 
 	//printf("%d\n", pos_p_elem);
@@ -171,12 +182,12 @@ char table_delete_by_key(Table* t, key_type key)
 
 	if (c == 0)
 	{
-		return OK;
+		return TABLE_OK;
 	}
 
 	swap(k2_ptr, t->key_arr+pos_p_elem, sizeof(k1_ptr)*c);
 
-	return OK;
+	return TABLE_OK;
 }
 
 size_t table_search_by_key(Table* t, key_type key)
