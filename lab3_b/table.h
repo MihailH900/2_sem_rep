@@ -1,10 +1,16 @@
 #ifndef TABLE_H
 #define TABLE_H
 
+#include <stdio.h>
 #include <stdlib.h>
 
 typedef unsigned int key_type;
 typedef unsigned int variable_type;
+
+typedef struct Item
+{
+	variable_type* data;
+} Item;
 
 typedef struct Key
 {
@@ -23,11 +29,23 @@ typedef struct Table
 
 	Key** key_arr;
 
-	FILE* f;
+	FILE* table_file;
 	char* file_name;
 } Table;
 
-Table* table_init(size_t capacity, key_type base_key);
+typedef enum Table_codes
+{
+	TABLE_OK,
+	TABLE_ADD_KEY_ERROR,
+	TABLE_ADD_PARENT_KEY_ERROR,
+	TABLE_ADD_SIZE_ERROR,
+	TABLE_FIND_ERROR
+	
+} Table_codes;
+
+Table* table_init(size_t capacity, key_type base_key, FILE* f, char* file_name);
+Table* table_load_from_binary_file(char* file_name);
+Table* create_new_table(char* file_name, size_t capacity);
 Table* table_search_by_parent_key(Table* t, key_type parent_key);
 char table_add(Table* t, key_type key, key_type parent_key, variable_type data);
 char table_delete_by_key(Table* t, key_type key);

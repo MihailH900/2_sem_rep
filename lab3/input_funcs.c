@@ -1,17 +1,12 @@
 #include "input_funcs.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include "table.h"
 
 char menu(Table* t)
 {
 	char flag, count;
 	char command = 0;
 	unsigned int key, parent_key, data;
-	while (command != 6)
+	while (command != 7)
 	{
 		print_menu();
 		command = get_size_t_numb(&flag);
@@ -166,14 +161,53 @@ char menu(Table* t)
 			table_print(ans);
 			table_free(ans);
 		}
+		else if (command == 6)
+		{
+			char* file_name = readline("Input file name: ");
+
+			if (file_name == NULL)
+			{
+				return INPUT_ERROR;
+			}
+
+			flag = set_size_t_item_numb( &(t->size), "Enter table size: ");
+			if (flag == INPUT_ERROR)
+			{
+				return INPUT_ERROR;
+			}
+			else if (flag == BAD_INPUT)
+			{
+				printf("Sorry, too big numb of wrong input\n");
+				return 0;
+			}
+			
+			if (get_table_elements_from_file(t, file_name) == TABLE_FILE_ERROR)
+			{
+				printf("Bad file name\n");
+			}
+
+			free(file_name);
+		}
 		else
 		{
-			printf("\nBad input\n");
+			printf("Bad input\n");
 		}
-		printf("\n");
 	}
 
 	return OK;
+}
+
+void print_menu()
+{
+	printf("\n");
+	printf("1 - add element\n");
+	printf("2 - delete element\n");
+	printf("3 - search by key\n");
+	printf("4 - show table\n");
+	printf("5 - search all elems with parent key\n");
+	printf("6 - import from file\n");
+	printf("7 - exit\n\n");
+	printf("input command: ");
 }
 
 char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, unsigned int* data)
@@ -271,209 +305,3 @@ char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, u
 
 	return OK;
 }
-
-char set_size_t_item_numb(size_t* data, const char* s)
-{
-	char flag;
-	char count = 1;
-	printf("%s", s);
-	(*data) = get_size_t_numb(&flag);
-	while (count < 3 )
-	{
-		if (flag == INPUT_ERROR)
-		{
-			printf("End of input\n");
-			return INPUT_ERROR;
-		}
-		else if (flag == BAD_INPUT)
-		{
-			printf("Bad input, try again\n");
-			
-			printf("%s", s);
-			*data = get_size_t_numb(&flag);
-			count++;
-			continue;
-		}
-
-		break;
-	}
-
-	if (count == 3)
-	{
-		printf("Too big numb of bad input\n\n");
-		return BAD_INPUT;
-	}
-
-	return OK;
-}
-
-char set_unsigned_item_numb(unsigned int* data, const char* s)
-{
-	char flag;
-	char count = 1;
-	printf("%s", s);
-	(*data) = get_unsigned_numb(&flag);
-	while (count < 3 )
-	{
-		if (flag == INPUT_ERROR)
-		{
-			printf("End of input\n");
-			return INPUT_ERROR;
-		}
-		else if (flag == BAD_INPUT)
-		{
-			printf("Bad input, try again\n");
-			
-			printf("%s", s);
-			*data = get_unsigned_numb(&flag);
-			count++;
-			continue;
-		}
-
-		break;
-	}
-
-	if (count == 3)
-	{
-		printf("Too big numb of bad input\n\n");
-		return BAD_INPUT;
-	}
-
-	return OK;
-}
-
-
-void print_menu()
-{
-	printf("1 - add element\n");
-	printf("2 - delete element\n");
-	printf("3 - search by key\n");
-	printf("4 - show table\n");
-	printf("5 - search all elems with parent key\n");
-	printf("6 - exit\n\n");
-	printf("input command: ");
-}
-
-size_t get_size_t_numb(char* flag)
-{
-	char c;
-	size_t ans = 0;
-	size_t size = log10(ULLONG_MAX)+1;
-	size_t help = ULLONG_MAX;
-
-	char mass_1[21];
-	for (int i = size-1; i >= 0; i--)
-	{
-		mass_1[i] = help%10;
-		help /= 10;
-	}
-
-	size_t i = 0, count = 0, s = 0;
-	while ( (c = getchar()) != EOF)
-	{
-		if ( (c != '\n') && (c < '0' || c > '9') )
-		{
-			while (c != '\n')
-			{
-				c = getchar();
-			}
-			
-			*flag = BAD_INPUT;
-			return 0;
-		}
-		else if (c == '\n')
-		{
-
-			if (count > size)
-			{
-				*flag = BAD_INPUT;
-				return ans;
-			}
-			else if (count == size)
-			{
-				if (s == 1)
-				{
-					return BAD_INPUT;
-				}
-			}
-
-			*flag = OK;
-			return ans;
-		}
-		else
-		{
-			ans *= 10;
-			if ( (c-'0') > mass_1[i])
-			{
-				s = 1;
-			}
-			count++;
-			ans += (c - '0');
-		}
-	}
-
-	*flag = INPUT_ERROR;
-	return ans;
-}
-
-unsigned int get_unsigned_numb(char* flag)
-{
-	char c;
-	unsigned int ans = 0;
-	
-	size_t size = log10(UINT_MAX);
-	size_t help = UINT_MAX;
-
-	char mass_2[21];
-	for (int i = size-1; i >= 0; i--)
-	{
-		mass_2[i] = help%10;
-		help /= 10;
-	}
-	size_t i = 0, count = 0, s = 0;
-	while ( (c = getchar()) != EOF)
-	{
-		if ( (c != '\n') && (c < '0' || c > '9') )
-		{
-			while (c != '\n')
-			{
-				c = getchar();
-			}
-			
-			*flag = BAD_INPUT;
-			return 0;
-		}
-		else if (c == '\n')
-		{
-			if (count > size)
-			{
-				*flag = BAD_INPUT;
-				return ans;
-			}
-			else if (count == size)
-			{
-				if (s == 1)
-				{
-					return BAD_INPUT;
-				}
-			}
-			*flag = OK;
-			return ans;
-		}
-		else
-		{
-
-			ans *= 10;
-			if ( (c-'0') > mass_2[i])
-			{
-				s = 1;
-			}
-			count++;
-			ans += (c - '0');
-		}
-	}
-
-	*flag = INPUT_ERROR;
-	return ans;
-}
-

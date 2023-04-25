@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#define MAX_BLOCK_SIZE 30
+
 typedef unsigned int key_type;
 typedef unsigned int variable_type;
 
@@ -35,11 +37,12 @@ typedef enum Table_codes
 	TABLE_ADD_KEY_ERROR,
 	TABLE_ADD_PARENT_KEY_ERROR,
 	TABLE_ADD_SIZE_ERROR,
-	TABLE_FIND_ERROR
-	
+	TABLE_FIND_ERROR,
+	TABLE_FILE_ERROR
 } Table_codes;
 
 Table* table_init(size_t capacity, key_type base_key);
+char get_table_elements_from_file(Table* t, char* file_name);
 Table* table_search_by_parent_key(Table* t, key_type parent_key);
 char table_add(Table* t, key_type key, key_type parent_key, variable_type data);
 char table_delete_by_key(Table* t, key_type key);

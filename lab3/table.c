@@ -1,5 +1,6 @@
 #include "table.h"
 #include <stdio.h>
+#include <string.h>
 
 Table* table_init(size_t capacity, key_type base_key)
 {
@@ -30,6 +31,27 @@ Table* table_init(size_t capacity, key_type base_key)
 	}
 
 	return t;
+}
+
+char get_table_elements_from_file(Table* t, char* file_name)
+{
+	FILE* file_with_table = fopen(file_name, "r");
+	
+	if (file_with_table == NULL)
+	{
+		return TABLE_FILE_ERROR;
+	}
+
+
+	Key** k = t->key_arr;
+	for (size_t i = 0; i < t->size; i++, k++)
+	{
+		fscanf(file_with_table, "%u %u %u", (*k)->key, (*k)->parent_key, (*k)->variable->data);
+	}
+
+	fclose(file_with_table);
+
+	return TABLE_OK;
 }
 
 Table* table_search_by_parent_key(Table* t, key_type parent_key)
@@ -109,8 +131,6 @@ char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 		i = 0;
 	}
 
-	//printf("%d\n, in - %d, after - %d\n", i, t->key_arr[i], t->key_arr[i+1]);
-
 	*(t->key_arr[i]->key) = key;
 	*(t->key_arr[i]->parent_key) = parent_key;
 	*(t->key_arr[i]->variable->data) = data;
@@ -121,7 +141,7 @@ char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 
 char table_delete_by_key(Table* t, key_type key)
 {
-	size_t i, pos_p_elem = table_search_first_with_parent_key(t, key);
+	size_t i, pos_first_elem_with_deleted_parent_key = table_search_first_with_parent_key(t, key);
 	if ( (i = table_search_by_key(t, key)) == t->size && t->base_key != key)
 	{ 
 		return TABLE_FIND_ERROR;
@@ -137,7 +157,6 @@ char table_delete_by_key(Table* t, key_type key)
 	}
 
 	t->key_arr[j] = k;
-	//table_print(t);
 
 	t->size--;
 
@@ -149,28 +168,26 @@ char table_delete_by_key(Table* t, key_type key)
 		k2_ptr++;
 	}
 
-	//printf("count is - %d\n", count);
-
 	if (count == t->size)
 	{
 		return TABLE_OK;
 	}
-
-	//printf("%d %d\n", *( (*k2_ptr)->key ), *( (*k2_ptr)->parent_key ) );
 
 	if (count == 0)
 	{
 		return TABLE_OK;
 	}
 
-	//printf("%d\n", pos_p_elem);
-	if (pos_p_elem > 0)
+	if (pos_first_elem_with_deleted_parent_key > 0)
 	{
-		pos_p_elem--;
+		pos_first_elem_with_deleted_parent_key--;
 	}
-	k1_ptr = t->key_arr + pos_p_elem;
+
+	k1_ptr = t->key_arr + pos_first_elem_with_deleted_parent_key;
 	size_t c = 0;
-	while ( *( (*k1_ptr)->parent_key ) == key)
+	while ( *( (*k1_ptr)->parent_key ) == key) // this is working because parent key of last element not equal key
+						   // (we alreade have deleted this elemnt, now it is on the end of table)
+						   // this while can't work infinitly
 	{
 		c++;
 		*( (*k1_ptr)->parent_key ) = 0;
@@ -178,14 +195,27 @@ char table_delete_by_key(Table* t, key_type key)
 	}
 	k1_ptr++;
 
-	//table_print(t);
-
 	if (c == 0)
 	{
 		return TABLE_OK;
 	}
+	
+	if (c < MAX_BLOCK_SIZE)
+	{
+		printf("KK\n");
+		void* ptr = malloc(c*sizeof(Key*));
+		memcpy(ptr, t->key_arr+pos_first_elem_with_deleted_parent_key, c*sizeof(Key*) );
+		memmove(t->key_arr + count + c, t->key_arr+count, (t->size-c-count-1)*sizeof(Key*) );
+		memmove(t->key_arr + count, ptr, c*sizeof(Key*) );
+	}
+	else
+	{
 
-	swap(k2_ptr, t->key_arr+pos_p_elem, sizeof(k1_ptr)*c);
+	}
+
+	printf("%d\n", pos_first_elem_with_deleted_parent_key);
+	
+	//swap(k2_ptr, t->key_arr+pos_p_elem, sizeof(k1_ptr)*c);
 
 	return TABLE_OK;
 }
@@ -310,17 +340,4 @@ Key* table_elem_alloc(Key* k)
 	}
 
 	return k;
-}
-
-void swap(void* a, void* b, size_t size)
-{
-	char* aCh = (a);
-	char* bCh = (b);
-
-	do
-	{
-		char tmp = *(aCh);
-		*aCh++ = *bCh;
-		*bCh++ = tmp;
-	} while (--size > 0);
 }
