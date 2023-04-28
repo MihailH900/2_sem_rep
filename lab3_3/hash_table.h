@@ -56,6 +56,8 @@ typedef enum Hash_table_codes
 
 Hash_table* hash_table_init(size_t capacity);
 char hash_table_add(Hash_table* h, void* key, size_t key_size, void* data, size_t data_size, size_t version);
+char add_node_in_list_of_hash_table(Hash_table* h, size_t elem_hash, void* data_ptr, size_t data_size);
+Node* hash_table_search(Hash_table* h, void* key_ptr, size_t key_size);
 size_t add_hash(size_t hash, size_t add_val);
 size_t hash_function(void* data_ptr, size_t size);
 Node* malloc_node();

@@ -348,7 +348,7 @@ char table_delete_by_key(Table* t, key_type key)
 	{
 		void* ptr = malloc (c*sizeof(Key*));
 		memcpy(ptr, t->key_arr+pos_first_elem_with_deleted_parent_key, c*sizeof(Key*) );
-		memmove(t->key_arr + count + c, t->key_arr+count, (t->size-c-count-1)*sizeof(Key*) );
+		memmove(t->key_arr + count + c - 1, t->key_arr+count, (pos_first_elem_with_deleted_parent_key+1-count-c)*sizeof(Key*) );
 		memmove(t->key_arr + count, ptr, c*sizeof(Key*) );
 	}
 	else
@@ -362,7 +362,7 @@ char table_delete_by_key(Table* t, key_type key)
 			Key** k1 =  t->key_arr + pos_first_elem_with_deleted_parent_key + i - 1;
 			Key** k2 =  t->key_arr + pos_first_elem_with_deleted_parent_key + i;
 
-			for (size_t j = t->size-c-count; j > 0; j--, k1--, k2--)
+			for (size_t j = pos_first_elem_with_deleted_parent_key + i; j > 0; j--, k1--, k2--)
 			{
 				*(k2) = *(k1);
 			}
