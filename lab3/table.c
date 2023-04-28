@@ -202,20 +202,30 @@ char table_delete_by_key(Table* t, key_type key)
 	
 	if (c < MAX_BLOCK_SIZE)
 	{
-		printf("KK\n");
-		void* ptr = malloc(c*sizeof(Key*));
+		void* ptr = malloc (c*sizeof(Key*));
 		memcpy(ptr, t->key_arr+pos_first_elem_with_deleted_parent_key, c*sizeof(Key*) );
 		memmove(t->key_arr + count + c, t->key_arr+count, (t->size-c-count-1)*sizeof(Key*) );
 		memmove(t->key_arr + count, ptr, c*sizeof(Key*) );
 	}
 	else
 	{
+		Key* ptr;
+		
+		for (size_t i = 0; i < c; i++)
+		{
+			ptr = *(t->key_arr + pos_first_elem_with_deleted_parent_key + i);
+			size_t j = count;
+			Key** k1 =  t->key_arr + pos_first_elem_with_deleted_parent_key + i - 1;
+			Key** k2 =  t->key_arr + pos_first_elem_with_deleted_parent_key + i;
 
+			for (size_t j = t->size-c-count; j > 0; j--, k1--, k2--)
+			{
+				*(k2) = *(k1);
+			}
+
+			t->key_arr[count+i] = ptr;
+		}
 	}
-
-	printf("%d\n", pos_first_elem_with_deleted_parent_key);
-	
-	//swap(k2_ptr, t->key_arr+pos_p_elem, sizeof(k1_ptr)*c);
 
 	return TABLE_OK;
 }

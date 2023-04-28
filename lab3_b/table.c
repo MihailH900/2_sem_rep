@@ -31,21 +31,57 @@ Table* table_init(size_t capacity, key_type base_key, FILE* table_file, char* fi
 	}
 	
 	t->table_file = table_file;
-	t->file_name = strdup(file_name);
-	if (t->file_name == NULL)
+	if (file_name == NULL)
 	{
-		return NULL;
+		t->file_name = NULL;
+	}
+	else
+	{
+		t->file_name = strdup(file_name);
+		
+		if (t->file_name == NULL)
+		{
+			return NULL;
+		}
 	}
 
 	return t;
 }
 
-Table* table_load_from_binary_file(char* file_name)
+char table_get_elements_from_file(Table* t, char* file_name)
+{
+	FILE* file_with_table = fopen(file_name, "r");
+	
+	if (file_with_table == NULL)
+	{
+		return TABLE_FILE_ERROR;
+	}
+
+
+	Key** k = t->key_arr;
+	for (size_t i = 0; i < t->size; i++, k++)
+	{
+		fscanf(file_with_table, "%u %u", (*k)->key, (*k)->parent_key);
+		variable_type data;
+		fscanf(file_with_table, "%u", &data);
+		
+		fseek(t->table_file, 0, SEEK_END);
+		size_t offset = ftell(t->table_file);
+		fwrite(&data, sizeof(variable_type), 1, t->table_file);
+		 
+	}
+
+	fclose(file_with_table);
+
+	return TABLE_OK;
+}
+
+char table_load_from_binary_file(Table** t, char* file_name)
 {
 	FILE* f = fopen(file_name, "r+b");
 	if (f == NULL)
 	{
-		return NULL;
+		return TABLE_FILE_ERROR;
 	}
 	
 	size_t capacity;
@@ -53,60 +89,117 @@ Table* table_load_from_binary_file(char* file_name)
 	size_t size;
 	fread(&size, sizeof(size_t), 1, f);
 	
-	Table* t = table_init(capacity, 0, f, file_name);
-	if (t == NULL)
+	(*t) = table_init(capacity, 0, f, file_name);
+	if ( (*t) == NULL)
 	{
-		return NULL;
+		return TABLE_MEMORY_ERROR;
 	}
+
+	(*t)->size = size;
 	
-	Key** k = t->key_arr;
+	Key** k = (*t)->key_arr;
+	size_t offset_in_the_start = sizeof( (*t)->capacity) + sizeof( (*t)->size) + (sizeof(key_type) * 2 * (*t)->capacity);
 	for (size_t i = 0; i < size; i++, k++)
 	{
-		fread( ( *(t->key_arr) )->key, sizeof(key_type), 1, t->table_file);
-		fread( ( *(t->key_arr) )->parent_key, sizeof(key_type), 1, t->table_file);
+		fread( (*k)->key, sizeof(key_type), 1, f);
+		fread( (*k)->parent_key, sizeof(key_type), 1, f);
+		(*k)->offset = offset_in_the_start;
+		offset_in_the_start += sizeof(variable_type);
 	}
 	
-	return t;
+	return TABLE_OK;
 }
 
-Table* create_new_table(char* file_name, size_t capacity)
+char table_create(Table** t, char* file_name, size_t capacity)
 {
 	FILE* f = fopen(file_name, "w+b");
 	if (f == NULL)
 	{
-		return NULL;	
+		return TABLE_FILE_ERROR;	
 	}
 	
-	Table* t = table_init(capacity, 0, f, file_name);
-	if (t == NULL)
+	(*t) = table_init(capacity, 0, f, file_name);
+	if ( (*t) == NULL)
 	{
-		return NULL;
+		return TABLE_MEMORY_ERROR;
 	}
 	
-	fseek(t->table_file, 0, SEEK_SET);
+	fseek( (*t)->table_file, 0, SEEK_SET);
 	
-	fwrite(&(t->size), sizeof(size_t), 1, t->table_file);
-        fwrite(&(t->capacity), sizeof(size_t), 1, t->table_file);
+	fwrite(&( (*t)->capacity), sizeof(size_t), 1, (*t)->table_file);
+        fwrite(&( (*t)->size), sizeof(size_t), 1, (*t)->table_file);
         
-        Key** k = t->key_arr;
-	for (size_t i = 0; i < t->size; i++, k++)
+        Key** k = (*t)->key_arr;
+	for (size_t i = 0; i < (*t)->capacity; i++, k++)
 	{
-		fread( ( *(t->key_arr) )->key, sizeof(key_type), 1, t->table_file);
-		fread( ( *(t->key_arr) )->parent_key, sizeof(key_type), 1, t->table_file);
+		fwrite( (*k)->key, sizeof(key_type), 1, (*t)->table_file);
+		fwrite( (*k)->parent_key, sizeof(key_type), 1, (*t)->table_file);
 	}
         
-        return t;
+        return TABLE_OK;
 }
 
-/*
+char table_save(Table* t)
+{
+	variable_type* elems_in_the_end = (variable_type*) malloc(sizeof(variable_type) * t->size);
+	if (elems_in_the_end == NULL)
+	{
+		return TABLE_MEMORY_ERROR;
+	}
+	
+	variable_type v;
+	variable_type* e = elems_in_the_end;
+	Key** k = t->key_arr;
+	
+	size_t offset_in_the_end = sizeof(t->capacity) + sizeof(t->size) + (sizeof(key_type) * 2 * t->capacity);
+	for(int i = 0; i < t->size; i++, e++, k++)
+	{
+                fseek(t->table_file, (*k)->offset, SEEK_SET);
+                fread(&v, sizeof(variable_type), 1, t->table_file);
+                *e = v;
+
+                (*k)->offset = offset_in_the_end;
+                offset_in_the_end += sizeof(variable_type);
+        }
+        fclose(t->table_file);
+        
+        t->table_file = fopen(t->file_name, "w+b");
+        if (t->table_file == NULL)
+	{
+		return TABLE_FILE_ERROR;
+	}
+	
+	fwrite(&( t->capacity), sizeof(size_t), 1, t->table_file);
+        fwrite(&( t->size), sizeof(size_t), 1, t->table_file);
+        
+        k = t->key_arr;
+	for (size_t i = 0; i < t->capacity; i++, k++)
+	{
+		fwrite( (*k)->key, sizeof(key_type), 1, t->table_file);
+		fwrite( (*k)->parent_key, sizeof(key_type), 1, t->table_file);
+	}
+	
+	e = elems_in_the_end;
+	for (size_t i = 0; i < t->size; i++, e++)
+	{
+		fwrite(e, sizeof(variable_type), 1, t->table_file);
+	}
+        
+        free(elems_in_the_end);
+        
+        return TABLE_OK;
+}
+
 Table* table_search_by_parent_key(Table* t, key_type parent_key)
 {
 	size_t ans_size = 0;
 	size_t ind = table_search_first_with_parent_key(t, parent_key);
 
+	FILE* f = fopen("help", "w+b");
+
 	if (ind == -1)
 	{
-		Table* ans = table_init(ans_size, parent_key, NULL, NULL);
+		Table* ans = table_init(ans_size, parent_key, f, "help");
 		return ans;
 	}
 	
@@ -119,12 +212,15 @@ Table* table_search_by_parent_key(Table* t, key_type parent_key)
 		i++;
 	}
 
-	Table* ans = table_init(ans_size, parent_key, NULL, NULL);
+	Table* ans = table_init(ans_size, parent_key, f, "help");
 	k = t->key_arr+ind;
 	i = ind;
 	while ( (i < t->size) && ( *( (*k)->parent_key ) == parent_key ) )
 	{
-		table_add(ans, *( (*k)->key ), *( (*k)->parent_key ), *( (*k)->variable->data ) );
+                fseek(t->table_file, (*k)->offset, SEEK_SET);
+		variable_type v;	
+                fread(&v, sizeof(variable_type), 1, t->table_file);
+		table_add(ans, *( (*k)->key ), *( (*k)->parent_key ), v);
 		k++;
 		i++;
 	}
@@ -132,22 +228,21 @@ Table* table_search_by_parent_key(Table* t, key_type parent_key)
 	return ans;
 }
 
-
 char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 {
-	if (table_search_by_key(t, key) != -1)
+	if (table_search_by_key(t, key) != t->size)
 	{
-		return 2;
+		return TABLE_ADD_KEY_ERROR;
 	}
 
-	if (table_search_by_key(t, parent_key) == -1 && parent_key != 0 && t->base_key != parent_key)
+	if (table_search_by_key(t, parent_key) == t->size && parent_key != 0 && parent_key != t->base_key)
 	{
-		return 2;
+		return TABLE_ADD_PARENT_KEY_ERROR;
 	}
 
 	if (t->size == t->capacity)
 	{
-		return 2;
+		return TABLE_ADD_SIZE_ERROR;
 	}
 
 	Key** k1_ptr = t->key_arr+t->size-1;
@@ -175,11 +270,14 @@ char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 		i = 0;
 	}
 
-	//printf("%d\n, in - %d, after - %d\n", i, t->key_arr[i], t->key_arr[i+1]);
-
 	*(t->key_arr[i]->key) = key;
 	*(t->key_arr[i]->parent_key) = parent_key;
-	*(t->key_arr[i]->variable->data) = data;
+
+	fseek(t->table_file, 0, SEEK_END);
+	size_t offset = ftell(t->table_file);
+	fwrite(&data, sizeof(variable_type), 1, t->table_file);
+	t->key_arr[i]->offset = offset;
+
 	t->size++;
 
 	return 0;
@@ -187,10 +285,10 @@ char table_add(Table* t, key_type key, key_type parent_key, variable_type data)
 
 char table_delete_by_key(Table* t, key_type key)
 {
-	size_t i, pos_p_elem = table_search_first_with_parent_key(t, key);
-	if ( (i = table_search_by_key(t, key)) == -1 && t->base_key != key)
-	{
-		return 2;
+	size_t i, pos_first_elem_with_deleted_parent_key = table_search_first_with_parent_key(t, key);
+	if ( (i = table_search_by_key(t, key)) == t->size && t->base_key != key)
+	{ 
+		return TABLE_FIND_ERROR;
 	}
 
 	Key** k1_ptr = t->key_arr + i;
@@ -203,7 +301,6 @@ char table_delete_by_key(Table* t, key_type key)
 	}
 
 	t->key_arr[j] = k;
-	//table_print(t);
 
 	t->size--;
 
@@ -215,24 +312,26 @@ char table_delete_by_key(Table* t, key_type key)
 		k2_ptr++;
 	}
 
-	//printf("count is - %d\n", count);
-
 	if (count == t->size)
 	{
-		return 0;
+		return TABLE_OK;
 	}
-
-	//printf("%d %d\n", *( (*k2_ptr)->key ), *( (*k2_ptr)->parent_key ) );
 
 	if (count == 0)
 	{
-		return 0;
+		return TABLE_OK;
 	}
 
-	//printf("%d\n", pos_p_elem);
-	k1_ptr = t->key_arr + pos_p_elem;
+	if (pos_first_elem_with_deleted_parent_key > 0)
+	{
+		pos_first_elem_with_deleted_parent_key--;
+	}
+
+	k1_ptr = t->key_arr + pos_first_elem_with_deleted_parent_key;
 	size_t c = 0;
-	while ( *( (*k1_ptr)->parent_key ) == key)
+	while ( *( (*k1_ptr)->parent_key ) == key) // this is working because parent key of last element not equal key
+						   // (we alreade have deleted this elemnt, now it is on the end of table)
+						   // this while can't work infinitly
 	{
 		c++;
 		*( (*k1_ptr)->parent_key ) = 0;
@@ -240,16 +339,39 @@ char table_delete_by_key(Table* t, key_type key)
 	}
 	k1_ptr++;
 
-	//table_print(t);
-
 	if (c == 0)
 	{
-		return 0;
+		return TABLE_OK;
+	}
+	
+	if (c < MAX_BLOCK_SIZE)
+	{
+		void* ptr = malloc (c*sizeof(Key*));
+		memcpy(ptr, t->key_arr+pos_first_elem_with_deleted_parent_key, c*sizeof(Key*) );
+		memmove(t->key_arr + count + c, t->key_arr+count, (t->size-c-count-1)*sizeof(Key*) );
+		memmove(t->key_arr + count, ptr, c*sizeof(Key*) );
+	}
+	else
+	{
+		Key* ptr;
+		
+		for (size_t i = 0; i < c; i++)
+		{
+			ptr = *(t->key_arr + pos_first_elem_with_deleted_parent_key + i);
+			size_t j = count;
+			Key** k1 =  t->key_arr + pos_first_elem_with_deleted_parent_key + i - 1;
+			Key** k2 =  t->key_arr + pos_first_elem_with_deleted_parent_key + i;
+
+			for (size_t j = t->size-c-count; j > 0; j--, k1--, k2--)
+			{
+				*(k2) = *(k1);
+			}
+
+			t->key_arr[count+i] = ptr;
+		}
 	}
 
-	swap(k2_ptr, t->key_arr+pos_p_elem, sizeof(k1_ptr)*c);
-
-	return 0;
+	return TABLE_OK;
 }
 
 size_t table_search_by_key(Table* t, key_type key)
@@ -263,7 +385,7 @@ size_t table_search_by_key(Table* t, key_type key)
 		}
 	}
 
-	return -1;
+	return t->size;
 }
 
 Item get_elem_with_this_key(Table* t, key_type key)
@@ -275,8 +397,10 @@ Item get_elem_with_this_key(Table* t, key_type key)
 	{
 		if ( *( (*k)->key ) == key)
 		{
+
+                	fseek(t->table_file, (*k)->offset, SEEK_SET);
 			ans.data = (variable_type* ) malloc(sizeof(variable_type));
-			*(ans.data) = *( (*k)->variable->data );
+                	fread(ans.data, sizeof(variable_type), 1, t->table_file);
 			return ans;	
 		}
 	}
@@ -313,17 +437,16 @@ size_t table_search_first_with_parent_key(Table* t, key_type parent_key)
 	return right;
 }
 
-*/
 void table_print(Table* t)
 {
 	Key** k = t->key_arr;
-	printf("Table size: %ld\n", t->size);
+	printf("Table size: %zu\n", t->size);
 	for (int i = 0; i < t->size; i++, k++)
 	{
 		printf("Key - %u, parent_key - %u, ", *( (*k)->key ), *( (*k)->parent_key ));
 		fseek(t->table_file, (*k)->offset, SEEK_SET);
-                unsigned int data;
-                fread(&data, sizeof(unsigned), 1, t->table_file);
+                variable_type data;
+                fread(&data, sizeof(variable_type), 1, t->table_file);
                 printf("data - %u\n", data);
 	}
 }
@@ -339,7 +462,7 @@ void table_free(Table* t)
 	}
 
 	free(t->key_arr);
-	free(t->table_file);
+	fclose(t->table_file);
 	free(t->file_name);
 	free(t);
 }
@@ -357,25 +480,14 @@ Key* table_elem_alloc(Key* k)
 	{
 		return NULL;
 	}
+	*(k->key) = 0;
 
 	k->parent_key = (key_type* ) malloc(sizeof(key_type));
 	if (k->parent_key == NULL)
 	{
 		return NULL;
 	}
+	*(k->parent_key) = 0;
 
 	return k;
-}
-
-void swap(void* a, void* b, size_t size)
-{
-	char* aCh = (a);
-	char* bCh = (b);
-
-	do
-	{
-		char tmp = *(aCh);
-		*aCh++ = *bCh;
-		*bCh++ = tmp;
-	} while (--size > 0);
 }

@@ -4,9 +4,9 @@
 char menu(Table** t)
 {
 	char flag, count;
-	char command = 0;
+	char command = 0, flag_load = 0;
 	unsigned int key, parent_key, data;
-	while (command != 6)
+	while (command != 7)
 	{
 		print_menu();
 		command = get_size_t_numb(&flag);
@@ -18,9 +18,35 @@ char menu(Table** t)
 		}
 		else if (command == 1)
 		{
-			printf("Ok");
+			flag = 1;
+			count = 1;
+			flag = get_params_for_add(*t, &key, &parent_key, &data);
+			while (flag != OK && count < 3)
+			{
+				if (flag == INPUT_ERROR)
+				{
+					return INPUT_ERROR;
+				}
+				
+				flag = get_params_for_add(*t, &key, &parent_key, &data);
+				count++;
+			}
+			if (count == 3)
+			{
+				printf("Too big numb of wrong input\nReturn to menu\n\n");
+				continue;
+			}
+
+			flag = table_add(*t, key, parent_key, data);
+			if (flag == TABLE_ADD_SIZE_ERROR)
+			{
+				printf("\nCan't add this element, table if full\n\n");
+				continue;
+			}
+			
+			printf("\nElement added\n");
 		}
-		/*else if(command == 2)
+		else if(command == 2)
 		{
 			flag = 1;
 			count = 1;
@@ -39,7 +65,7 @@ char menu(Table** t)
 					continue;
 				}
 
-				if ( table_search_by_key(t, key) == t->size && t->base_key != key)
+				if ( table_search_by_key(*t, key) == (*t)->size && (*t)->base_key != key)
 				{
 					printf("Can't find this key in table. Try again\n");
 					flag = set_unsigned_item_numb(&key, "Input key: ");
@@ -55,7 +81,7 @@ char menu(Table** t)
 				continue;
 			}
 			
-			table_delete_by_key(t, key);
+			table_delete_by_key(*t, key);
 
 			printf("\nElement deleted\n");
 		}
@@ -86,7 +112,7 @@ char menu(Table** t)
 				continue;
 			}
 
-			Item ans = get_elem_with_this_key(t, key);
+			Item ans = get_elem_with_this_key(*t, key);
 			
 			if (ans.data == NULL)
 			{
@@ -101,7 +127,7 @@ char menu(Table** t)
 		else if (command == 4)
 		{
 			printf("\n");
-			table_print(t);
+			table_print(*t);
 		}
 		else if (command == 5)
 		{
@@ -130,12 +156,32 @@ char menu(Table** t)
 				continue;
 			}
 
-			Table* ans = table_search_by_parent_key(t, parent_key);
+			Table* ans = table_search_by_parent_key(*t, parent_key);
 			
 			table_print(ans);
 			table_free(ans);
 		}
-		*/
+		else if (command == 6)
+		{
+			if (flag_load == 0)
+			{
+				flag_load = 1;
+				char* file_name = readline("Enter file name: ");
+				table_get_elements_from_file(*t, file_name);
+				printf("Table has loaded");
+				free(file_name);
+			}
+			else
+			{
+				printf("Table has already loaded\n");
+			}
+		}
+		else if (command == 7)
+		{
+			table_save(*t);
+			printf("Bye");
+			break;
+		}
 		else
 		{
 			printf("\nBad input\n");
@@ -153,15 +199,61 @@ void print_menu()
 	printf("3 - search by key\n");
 	printf("4 - show table\n");
 	printf("5 - search all elems with parent key\n");
-	printf("6 - exit\n\n");
+	printf("6 - load table from file\n");
+	printf("7 - exit\n\n");
 	printf("input command: ");
 }
 
 Table* table_load()
 {
-	char* file_name = readline("Input file name: ");
-	
+	Table* t;
+	char flag;
+
+	char* file_name = readline("Enter file name: ");
+	flag = table_load_from_binary_file(&t, file_name);
+
+	if (flag == TABLE_MEMORY_ERROR)
+	{
+		printf("Memory error\n");
+		return NULL;
+	}
+	else if (flag == TABLE_FILE_ERROR)
+	{
+		printf("Bad file name. We are going to create new file and new table in this run of program");	
+		
+		size_t capacity = 0;
+		flag = set_size_t_item_numb(&capacity, "\nEnter max table size: ");
+
+		if (flag == INPUT_ERROR)
+		{
+			printf("Input error\n");
+			return NULL;
+		}
+		else if (flag == BAD_INPUT)
+		{
+			printf("Sorry, too big numb of wrong input\n");
+			return NULL;
+		}
+		
+		flag = table_create(&t, file_name, capacity);
+		
+		if (flag == TABLE_FILE_ERROR)
+		{
+			printf("File open error\n");
+			return NULL;
+		}
+		else if (flag == TABLE_MEMORY_ERROR)
+		{
+			printf("Memory error\n");
+			return NULL;
+		}
+	}
+
+	free(file_name);
+	printf("\nTable size - %zu, max size - %zu\n\n", t->size, t->capacity);
+	return t;
 }
+
 
 char get_params_for_add(Table* t, unsigned int* key, unsigned int* parent_key, unsigned int* data)
 {

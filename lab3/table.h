@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-#define MAX_BLOCK_SIZE 30
+#define MAX_BLOCK_SIZE 0
 
 typedef unsigned int key_type;
 typedef unsigned int variable_type;
