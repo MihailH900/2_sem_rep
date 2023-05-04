@@ -10,12 +10,12 @@ char menu(BST* tree)
 	char flag, count;
 	command_type command = 0;
 	unsigned int key, data;
-	while (command != 7)
+	while (command != 6)
 	{
 		print_menu();
 		command = get_size_t_numb(&flag);
 
-		if (flag == INPUT_ERROR || command == 7)
+		if (flag == INPUT_ERROR || command == 6)
 		{
 			printf("End of input\n");
 			return INPUT_ERROR;
@@ -24,22 +24,44 @@ char menu(BST* tree)
 		{
 			flag = 1;
 			count = 1;
-			flag = get_params_for_add(&key, &data);
-			while (flag != OK && count < 3)
+			flag = set_unsigned_item_numb(&key, "Input key: ");
+			while (count < 3)
 			{
 				if (flag == INPUT_ERROR)
 				{
+					printf("End of input\n");
 					return INPUT_ERROR;
 				}
-				
-				flag = get_params_for_add(&key, &data);
-				count++;
+				else if (flag == BAD_INPUT)
+				{
+					flag = set_unsigned_item_numb(&key, "Input key: ");
+					count++;
+					continue;
+				}
+
+				if (BST_search(tree, &key, sizeof(unsigned int)) != NULL)
+				{
+					printf("Bad input, there is a same key in tree, try again\n");
+					flag = set_unsigned_item_numb(&key, "Input key: ");
+					count++;
+					continue;
+				}
+
+				break;
 			}
 			if (count == 3)
 			{
-				printf("Too big numb of wrong input\nReturn to menu\n\n");
-				continue;
+				printf("Sorry, too big numb of wrong input\n");
+				return BAD_INPUT;
 			}
+
+			flag = BST_add(tree, &key, sizeof(unsigned int));
+			if (flag == BST_MEMORY_ERROR)
+			{
+				return BST_MEMORY_ERROR;
+			}
+
+			printf("\nElement added\n");
 		}
 		else if(command == 2)
 		{
@@ -55,11 +77,7 @@ char menu(BST* tree)
 		}
 		else if (command == 5)
 		{
-
-		}
-		else if (command == 6)
-		{
-
+			BST_print(tree->root, 0);
 		}
 		else
 		{
@@ -80,69 +98,4 @@ void print_menu()
 	printf("5 - show tree\n");
 	printf("6 - exit\n\n");
 	printf("input command: ");
-}
-
-char get_params_for_add(BST* tree,unsigned int* key, unsigned int* data)
-{
-	char flag;
-	char count = 1;
-
-	flag = set_unsigned_item_numb(key, "Input key: ");
-	while (count < 3)
-	{
-		if (flag == INPUT_ERROR)
-		{
-			printf("End of input\n");
-			return INPUT_ERROR;
-		}
-		else if (flag == BAD_INPUT)
-		{
-			flag = set_unsigned_item_numb(key, "Input key: ");
-			count++;
-			continue;
-		}
-
-		if (BST_search(tree, key, sizeof(*key)) != t->size)
-		{
-			printf("Bad input, there is a same key in tree, try again\n");
-			flag = set_unsigned_item_numb(key, "Input key: ");
-			count++;
-			continue;
-		}
-
-		break;
-	}
-	if (count == 3)
-	{
-		printf("Bad key\n\n");
-		return BAD_INPUT;
-	}
-
-	count = 1;
-	flag = set_unsigned_item_numb(data, "Input data: ");
-	while (count < 3)
-	{
-		count++;
-		if (flag == INPUT_ERROR)
-		{
-			return flag;
-		}
-		
-		if (flag == BAD_INPUT)
-		{
-			printf("Bad input, try again\n");
-			flag = set_unsigned_item_numb(data, "Input data: ");
-			count++;
-			continue;
-		}
-
-		break;
-	}
-	if (count == 3)
-	{
-		printf("Bad data\n\n");
-		return BAD_INPUT;
-	}
-
-	return OK;
 }

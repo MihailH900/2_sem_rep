@@ -12,6 +12,21 @@ int main()
 		return BST_MEMORY_ERROR;
 	}
 
+	char flag = menu(tree);
+	if (flag == BST_MEMORY_ERROR)
+	{
+		printf("Memory error\n");
+		
+		return BST_MEMORY_ERROR;
+	}
+	else if (flag == BAD_INPUT)
+	{
+		printf("Sorry, too big numb of wrong input\n");
+		return BAD_INPUT;
+	}
+
+	BST_free(tree);
+
 	return 0;
 }
 

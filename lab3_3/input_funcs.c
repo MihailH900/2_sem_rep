@@ -35,10 +35,12 @@ char menu(Hash_table* h)
 			else if (flag == HASH_TABLE_ADD_SIZE_ERROR)
 			{
 				printf("Hash table is full\n");
-				continue;
+			}
+			else
+			{
+				printf("\nElement added\n");
 			}
 
-			printf("\nElement added\n");
 			free(key);
 			free(data);
 		}
@@ -51,10 +53,12 @@ char menu(Hash_table* h)
 			if (flag == HASH_TABLE_FIND_ERROR)
 			{
 				printf("Can't delete this elem - there is no this key\n");
-				continue;
+			}
+			else
+			{
+				printf("\nElement deleted\n");
 			}
 
-			printf("\nElement deleted\n");
 			free(key);
 		}
 		else if (command == 3)
@@ -89,11 +93,14 @@ char menu(Hash_table* h)
 
 			if (flag == HASH_TABLE_FIND_ERROR)
 			{
-				printf("Can't delete this elem - there is no this key\n");
+				printf("Can't delete this elem - there is no this key or release\n");
 				continue;
 			}
+			else
+			{
+				printf("\nElement deleted\n");
+			}
 
-			printf("\nElement deleted\n");
 			free(key);
 		}
 		else if (command == 4)
@@ -167,7 +174,10 @@ char menu(Hash_table* h)
 			}
 			else if (flag == HASH_TABLE_FIND_ERROR)
 			{
-				printf("Can't find elems with this key\n");
+				printf("Can't find elem with this key and release\n");
+				free(key);
+				free(ans);
+				continue;
 			}
 			else
 			{
