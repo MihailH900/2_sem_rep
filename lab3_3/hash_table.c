@@ -1,6 +1,7 @@
 #include "hash_table.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 Hash_table* hash_table_init(size_t capacity)
 {
@@ -28,44 +29,67 @@ Hash_table* hash_table_init(size_t capacity)
 			return NULL;
 		}
 
-		(*k)->busy = 0;
-		(*k)->variables_list = NULL;
+		(*k)->key_ptr = NULL;
+
+		(*k)->variables_list = (List*) malloc(sizeof(List));
+		if ( (*k)->variables_list == NULL)
+		{
+			return NULL;
+		}
+
+		(*k)->variables_list->head = NULL;
 	}
 
 	return h;
 }
 
-char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_ptr, size_t data_size, size_t version)
+char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_ptr, size_t data_size)
 {
 	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
-	if (h->key_arr[elem_hash]->busy == 1)
+	if (h->key_arr[elem_hash]->variables_list->head != NULL)
 	{
+		size_t i = 0;
+
 		if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
 		{
-			size_t i = 0;
-			
-			while ( (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) ) && i < h->capacity )
+			while (i < h->capacity)
 			{
 				elem_hash = add_hash(elem_hash, h->capacity) % h->capacity;
+				
+				if (h->key_arr[elem_hash]->key_ptr == NULL)
+				{
+					break;
+				}
+
+				if (h->key_arr[elem_hash]->key_size == key_size && check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) == 0 )
+				{
+					break;
+				}
+
 				i++;
 			}
-
-			if (i < h->capacity)
-			{
-				return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
-			}
-
-			return HASH_TABLE_ADD_SIZE_ERROR;
 		}
-		else
+
+		if (i < h->capacity)
 		{
+
+			h->key_arr[elem_hash]->key_ptr = malloc(key_size);
+			if (h->key_arr[elem_hash]->key_ptr == NULL)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+			memcpy(h->key_arr[elem_hash]->key_ptr, key_ptr, key_size);
+			h->key_arr[elem_hash]->key_size = key_size;
+
+			h->size++;
+			
 			return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
 		}
+
+		return HASH_TABLE_ADD_SIZE_ERROR;
 	}
 	else
 	{
-		h->key_arr[elem_hash]->busy = 1;
-
 		h->key_arr[elem_hash]->key_ptr = malloc(key_size);
 		if (h->key_arr[elem_hash]->key_ptr == NULL)
 		{
@@ -75,31 +99,131 @@ char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_pt
 		h->key_arr[elem_hash]->key_size = key_size;
 
 
+		h->size++;
 		return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
 	}
 }
 
-Node* hash_table_search(Hash_table* h, void* key_ptr, size_t key_size)
+char hash_table_search(Hash_table* h, void* key_ptr, size_t key_size, Hash_table* ans)
 {
-	Node* ans = (Node*) malloc(sizeof(Node));
-
 	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
 	
-	if (h->key_arr[elem_hash]->busy == 1)
+	if (h->key_arr[elem_hash]->variables_list->head != NULL)
 	{
+		size_t i = 0;
 		if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
 		{
+			while (i < h->capacity)
+			{
+				elem_hash = add_hash(elem_hash, h->capacity) % h->capacity;
+				
+				if (h->key_arr[elem_hash]->key_ptr == NULL)
+				{
+					continue;
+				}
 
+				if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
+				{
+					break;
+				}
+
+				i++;
+			}
 		}
-		else
+
+		if (i < h->capacity)
 		{
 
+			Node* n_1 = h->key_arr[elem_hash]->variables_list->head;
+			char flag;
+			while (n_1 != NULL)
+			{
+				flag = hash_table_add(ans, key_ptr, key_size, n_1->data->data_ptr, n_1->data->data_size);
+
+				if (flag == HASH_TABLE_MEMORY_ERROR)
+				{
+					return flag;
+				}
+
+				n_1 = n_1->next;
+			}
+
+			return HASH_TABLE_OK;
+			
 		}
+
+		return HASH_TABLE_FIND_ERROR;
 	}
 	else
 	{
-
+		return HASH_TABLE_FIND_ERROR;
 	}
+}
+
+void hash_table_print(Hash_table* h)
+{
+	printf("Hash table size: %zu\nHash table capacity: %zu\n", h->size, h->capacity);
+
+	Key** k = h->key_arr;
+	printf("\n");
+	for (size_t i = 0; i < h->capacity; i++, k++)
+	{
+		if ( (*k)->key_ptr == NULL)
+		{
+			printf("Key: NULL\n");
+		}
+		else
+		{
+			printf("Key: %s\n", (char*)(*k)->key_ptr);
+		}
+
+		if ( (*k)->variables_list->head == NULL)
+		{
+			printf("Variables: NULL\n");
+		}
+		else
+		{
+			printf("Variables:\n");
+			Node* n = (*k)->variables_list->head;
+			while (n != NULL)
+			{
+				printf("Data: %s, release: %zu\n", (char*)n->data->data_ptr, n->release);
+				n = n->next;
+			}
+		}
+	}
+}
+
+void hash_table_free(Hash_table* h)
+{
+	Key** k = h->key_arr;
+	for (size_t i = 0; i < h->capacity; i++, k++)
+	{
+		if ( (*k)->variables_list->head != NULL)
+		{
+			Node* n = (*k)->variables_list->head;
+			while ( (*k)->variables_list->head != NULL)
+			{
+				(*k)->variables_list->head = (*k)->variables_list->head->next;
+				free(n->data->data_ptr);
+				free(n->data);
+				free(n);
+				n = (*k)->variables_list->head;
+			}
+		}
+
+		free( (*k)->variables_list);
+
+		if ( (*k)->key_ptr != NULL)
+		{
+			free( (*k)->key_ptr);
+		}
+
+		free( (*k));
+	}
+
+	free(h->key_arr);
+	free(h);
 }
 
 char add_node_in_list_of_hash_table(Hash_table* h, size_t elem_hash, void* data_ptr, size_t data_size)
@@ -110,17 +234,25 @@ char add_node_in_list_of_hash_table(Hash_table* h, size_t elem_hash, void* data_
 		return HASH_TABLE_MEMORY_ERROR;
 	}
 
-	n->release = h->key_arr[elem_hash]->variables_list->release+1;
-			
+	if (h->key_arr[elem_hash]->variables_list->head == NULL)
+	{
+		n->release = 1;
+	}
+	else
+	{
+		n->release = h->key_arr[elem_hash]->variables_list->head->release+1;
+	}
+
 	n->data->data_ptr = malloc(data_size);
 	if (n->data->data_ptr == NULL)
 	{
 		return HASH_TABLE_MEMORY_ERROR;
 	}
 	memcpy(n->data->data_ptr, data_ptr, data_size);
+	n->data->data_size = data_size;
 	
-	n->next = h->key_arr[elem_hash]->variables_list;
-	h->key_arr[elem_hash]->variables_list = n;
+	n->next = h->key_arr[elem_hash]->variables_list->head;
+	h->key_arr[elem_hash]->variables_list->head = n;
 
 	return HASH_TABLE_OK;
 }

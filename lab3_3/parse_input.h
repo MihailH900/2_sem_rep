@@ -7,7 +7,7 @@ typedef enum Input_codes
 {
 	BAD_INPUT = -2,
 	INPUT_ERROR,
-	OK
+	OK,
 } Input_codes;
 
 char set_size_t_item_numb(size_t* item, const char* s);

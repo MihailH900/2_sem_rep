@@ -27,7 +27,8 @@ void gen(char* s, size_t n, FILE* f, size_t size)
 	 {
 		 if (n > 1)
 		 {
-			 gen(s, n-1, f, size);
+			s[n-1] = alf[i];
+			gen(s, n-1, f, size);
 		 }
 		 else
 		 {
@@ -42,7 +43,7 @@ int main()
 {
 	FILE* f = fopen("hashes", "w");
 
-	for (size_t i = 1; i < 5; i++)
+	for (size_t i = 1; i < 3; i++)
 	{
 		char* s = (char* ) malloc(i+1);
 		s[i] = '\0';
