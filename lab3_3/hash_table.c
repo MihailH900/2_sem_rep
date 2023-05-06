@@ -30,6 +30,7 @@ Hash_table* hash_table_init(size_t capacity)
 		}
 
 		(*k)->key_ptr = NULL;
+		(*k)->key_size = 0;
 
 		(*k)->variables_list = (List*) malloc(sizeof(List));
 		if ( (*k)->variables_list == NULL)
@@ -44,6 +45,52 @@ Hash_table* hash_table_init(size_t capacity)
 }
 
 char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_ptr, size_t data_size)
+{
+	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
+	if (h->key_arr[elem_hash]->variables_list->head != NULL)
+	{
+		char flag = 0;
+		elem_hash = get_elem_pos(h, key_ptr, key_size, &flag);
+
+		if (flag == HASH_TABLE_FIND_ERROR_WITHOUT_NULL)
+		{
+			return HASH_TABLE_ADD_SIZE_ERROR;
+		}
+
+		if (flag == HASH_TABLE_FIND_ERROR)
+		{
+			h->key_arr[elem_hash]->key_ptr = malloc(key_size);
+			if (h->key_arr[elem_hash]->key_ptr == NULL)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+			memcpy(h->key_arr[elem_hash]->key_ptr, key_ptr, key_size);
+			h->key_arr[elem_hash]->key_size = key_size;
+
+			h->size++;
+			
+			return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
+		}
+
+		return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
+	}
+	else
+	{
+		h->key_arr[elem_hash]->key_ptr = malloc(key_size);
+		if (h->key_arr[elem_hash]->key_ptr == NULL)
+		{
+			return HASH_TABLE_MEMORY_ERROR;
+		}
+		memcpy(h->key_arr[elem_hash]->key_ptr, key_ptr, key_size);
+		h->key_arr[elem_hash]->key_size = key_size;
+
+
+		h->size++;
+		return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
+	}
+}
+
+char hash_table_delete_by_key(Hash_table* h, void* key_ptr, size_t key_size)
 {
 	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
 	if (h->key_arr[elem_hash]->variables_list->head != NULL)
@@ -72,39 +119,112 @@ char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_pt
 
 		if (i < h->capacity)
 		{
-
-			h->key_arr[elem_hash]->key_ptr = malloc(key_size);
-			if (h->key_arr[elem_hash]->key_ptr == NULL)
+			Node* n = h->key_arr[elem_hash]->variables_list->head;
+			while (h->key_arr[elem_hash]->variables_list->head != NULL)
 			{
-				return HASH_TABLE_MEMORY_ERROR;
+				h->key_arr[elem_hash]->variables_list->head = h->key_arr[elem_hash]->variables_list->head->next;
+				free(n->data->data_ptr);
+				free(n->data);
+				free(n);
+				n = h->key_arr[elem_hash]->variables_list->head;
 			}
-			memcpy(h->key_arr[elem_hash]->key_ptr, key_ptr, key_size);
-			h->key_arr[elem_hash]->key_size = key_size;
 
-			h->size++;
-			
-			return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
+			h->key_arr[elem_hash]->variables_list->head = NULL;
+			free(h->key_arr[elem_hash]->key_ptr);
+			h->key_arr[elem_hash]->key_ptr = NULL;
+			h->key_arr[elem_hash]->key_size = 0;
+		
+			h->size--;
+			return HASH_TABLE_OK;
 		}
-
-		return HASH_TABLE_ADD_SIZE_ERROR;
+		
+		return HASH_TABLE_FIND_ERROR;
 	}
 	else
 	{
-		h->key_arr[elem_hash]->key_ptr = malloc(key_size);
-		if (h->key_arr[elem_hash]->key_ptr == NULL)
-		{
-			return HASH_TABLE_MEMORY_ERROR;
-		}
-		memcpy(h->key_arr[elem_hash]->key_ptr, key_ptr, key_size);
-		h->key_arr[elem_hash]->key_size = key_size;
-
-
-		h->size++;
-		return add_node_in_list_of_hash_table(h, elem_hash, data_ptr, data_size);
+		return HASH_TABLE_FIND_ERROR;
 	}
 }
 
-char hash_table_search(Hash_table* h, void* key_ptr, size_t key_size, Hash_table* ans)
+char hash_table_delete_by_key_and_version(Hash_table* h, void* key_ptr, size_t key_size, size_t release)
+{
+	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
+	if (h->key_arr[elem_hash]->variables_list->head != NULL)
+	{
+		size_t i = 0;
+
+		if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
+		{
+			while (i < h->capacity)
+			{
+				elem_hash = add_hash(elem_hash, h->capacity) % h->capacity;
+				
+				if (h->key_arr[elem_hash]->key_ptr == NULL)
+				{
+					break;
+				}
+
+				if (h->key_arr[elem_hash]->key_size == key_size && check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) == 0 )
+				{
+					break;
+				}
+
+				i++;
+			}
+		}
+
+		if (i < h->capacity)
+		{
+			Node* n_1 = h->key_arr[elem_hash]->variables_list->head;
+			if (n_1->next == NULL || n_1->release == release)
+			{
+				if (n_1->release != release)
+				{
+					return HASH_TABLE_FIND_ERROR;
+				}
+				else
+				{
+					free(n_1->data->data_ptr);
+					free(n_1->data);
+					free(n_1);
+					h->key_arr[elem_hash]->variables_list->head = NULL;
+
+					return HASH_TABLE_OK;
+				}
+			}
+			else
+			{
+				Node* n_2 = n_1->next;
+				while (n_2 != NULL)
+				{
+					if (n_2->release == release)
+					{
+						n_1->next = n_2->next;
+						free(n_2->data->data_ptr);
+						free(n_2->data);
+						free(n_2);
+						
+						return HASH_TABLE_OK;
+					}
+
+					n_2 = n_2->next;
+					n_1 = n_1->next;
+				}
+
+				return HASH_TABLE_FIND_ERROR;
+			}
+		
+		}
+		
+		return HASH_TABLE_FIND_ERROR;
+	}
+	else
+	{
+		return HASH_TABLE_FIND_ERROR;
+	}
+}
+
+char hash_table_search_by_key(Hash_table* h, void* key_ptr, size_t key_size, Hash_table* ans)
 {
 	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
 	
@@ -122,7 +242,62 @@ char hash_table_search(Hash_table* h, void* key_ptr, size_t key_size, Hash_table
 					continue;
 				}
 
-				if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
+				if (h->key_arr[elem_hash]->key_size == key_size && check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) == 0 )
+				{
+					break;
+				}
+
+				i++;
+			}
+		}
+
+		if (i < h->capacity)
+		{
+			Node* n_1 = h->key_arr[elem_hash]->variables_list->head;
+			char flag;
+			while (n_1 != NULL)
+			{
+				flag = hash_table_add(ans, key_ptr, key_size, n_1->data->data_ptr, n_1->data->data_size);
+
+				if (flag == HASH_TABLE_MEMORY_ERROR)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+
+				n_1 = n_1->next;
+			}
+
+			return HASH_TABLE_OK;
+			
+		}
+
+		return HASH_TABLE_FIND_ERROR;
+	}
+	else
+	{
+		return HASH_TABLE_FIND_ERROR;
+	}
+}
+
+char hash_table_search_by_key_and_version(Hash_table* h, void* key_ptr, size_t key_size, size_t key_release, Node* ans)
+{
+	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
+	
+	if (h->key_arr[elem_hash]->variables_list->head != NULL)
+	{
+		size_t i = 0;
+		if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
+		{
+			while (i < h->capacity)
+			{
+				elem_hash = add_hash(elem_hash, h->capacity) % h->capacity;
+				
+				if (h->key_arr[elem_hash]->key_ptr == NULL)
+				{
+					continue;
+				}
+
+				if (h->key_arr[elem_hash]->key_size == key_size && check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) == 0 )
 				{
 					break;
 				}
@@ -138,17 +313,32 @@ char hash_table_search(Hash_table* h, void* key_ptr, size_t key_size, Hash_table
 			char flag;
 			while (n_1 != NULL)
 			{
-				flag = hash_table_add(ans, key_ptr, key_size, n_1->data->data_ptr, n_1->data->data_size);
-
-				if (flag == HASH_TABLE_MEMORY_ERROR)
+				if (n_1->release == key_release)
 				{
-					return flag;
+					ans->release = key_release;
+					ans->data = (Item*) malloc(sizeof(Item));
+					if (ans->data == NULL)
+					{
+						return HASH_TABLE_MEMORY_ERROR;
+					}
+
+					ans->data->data_ptr = malloc(n_1->data->data_size);
+					if (ans->data->data_ptr == NULL)
+					{
+						return HASH_TABLE_MEMORY_ERROR;
+					}
+
+					memcpy(ans->data->data_ptr, n_1->data->data_ptr, n_1->data->data_size);
+					ans->data->data_size = n_1->data->data_size;
+					ans->next = NULL;
+
+					return HASH_TABLE_OK;
 				}
 
 				n_1 = n_1->next;
 			}
 
-			return HASH_TABLE_OK;
+			return HASH_TABLE_FIND_ERROR;
 			
 		}
 
@@ -157,6 +347,65 @@ char hash_table_search(Hash_table* h, void* key_ptr, size_t key_size, Hash_table
 	else
 	{
 		return HASH_TABLE_FIND_ERROR;
+	}
+}
+
+size_t get_elem_pos(Hash_table* h, void* key_ptr, size_t key_size, char* flag)
+{
+	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
+	
+	if (h->key_arr[elem_hash]->variables_list->head != NULL)
+	{
+		size_t i = 0;
+		size_t pos;
+		char p = -1;
+		if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
+		{
+			while (i < h->capacity)
+			{
+				elem_hash = add_hash(elem_hash, h->capacity) % h->capacity;
+				
+				if (h->key_arr[elem_hash]->key_ptr == NULL)
+				{
+					if (p == -1)
+					{
+						pos = elem_hash;
+						p = 1;
+					}
+					continue;
+				}
+
+				if (h->key_arr[elem_hash]->key_size == key_size && check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) == 0 )
+				{
+					break;
+				}
+
+				i++;
+			}
+		}
+
+		if (i < h->capacity)
+		{
+
+			(*flag) = HASH_TABLE_OK;
+			return elem_hash;
+		}
+		
+		if (p == -1)
+		{
+			(*flag) = HASH_TABLE_FIND_ERROR_WITHOUT_NULL;
+		}
+		else
+		{
+			(*flag) = HASH_TABLE_FIND_ERROR;
+		}
+
+		return pos;
+	}
+	else
+	{
+		(*flag) = HASH_TABLE_FIND_ERROR;
+		return elem_hash;
 	}
 }
 
@@ -259,7 +508,7 @@ char add_node_in_list_of_hash_table(Hash_table* h, size_t elem_hash, void* data_
 
 size_t add_hash(size_t hash, size_t add_val)
 {
-	return (hash + (add_val -1 ) );
+	return (hash + (add_val - 1 ) );
 }
 
 size_t hash_function(void* data_ptr, size_t size)
@@ -297,6 +546,11 @@ Node* malloc_node()
 
 char check_equal(void* a, void* b, size_t size)
 {
+	if (a == NULL || b == NULL)
+	{
+		return 1;
+	}
+
 	char* a_byte = a;
 	char* b_byte = b;
 

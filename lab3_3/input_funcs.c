@@ -3,87 +3,66 @@
 #include <string.h>
 #include <stdlib.h>
 
+typedef char command_type;
+
 char menu(Hash_table* h)
 {
 	char flag, count;
-	char command = 0;
-	unsigned int key, parent_key, data;
-	while (command != 9)
+	command_type command = 0;
+	char* key;
+	char* data;
+	size_t release;
+	while (command != 7)
 	{
 		print_menu();
 		command = get_size_t_numb(&flag);
 
-		if (flag == INPUT_ERROR)
+		if (flag == INPUT_ERROR || command == 7)
 		{
 			printf("End of input\n");
 			return INPUT_ERROR;
 		}
 		else if (command == 1)
 		{
-			char* key = readline("Input key: ");
-			char* data = readline("Input data: ");
+			key = readline("Input key: ");
+			data = readline("Input data: ");
 
 			flag = hash_table_add(h, key, strlen(key)+1, data, strlen(data)+1);
-			if (flag == HASH_TABLE_ADD_SIZE_ERROR)
+			if (flag == HASH_TABLE_MEMORY_ERROR)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+			else if (flag == HASH_TABLE_ADD_SIZE_ERROR)
 			{
 				printf("Hash table is full\n");
 				continue;
 			}
-			else if (flag == HASH_TABLE_MEMORY_ERROR)
-			{
-				printf("Memory error\n");
-				return HASH_TABLE_MEMORY_ERROR;
-			}
 
-			printf("Element added\n");
+			printf("\nElement added\n");
 			free(key);
 			free(data);
 		}
-		/*
 		else if(command == 2)
 		{
-			flag = 1;
-			count = 1;
-			flag = set_unsigned_item_numb(&key, "Input key: ");
-			while (count < 3)
+			key = readline("Input key: ");
+		
+			flag = hash_table_delete_by_key(h, key, strlen(key)+1);
+
+			if (flag == HASH_TABLE_FIND_ERROR)
 			{
-				if (flag == INPUT_ERROR)
-				{
-					return INPUT_ERROR;
-				}
-
-				if (flag == BAD_INPUT)
-				{
-					flag = set_unsigned_item_numb(&key, "Input_key: ");
-					count++;
-					continue;
-				}
-
-				if ( table_search_by_key(t, key) == t->size && t->base_key != key)
-				{
-					printf("Can't find this key in table. Try again\n");
-					flag = set_unsigned_item_numb(&key, "Input key: ");
-					count++;
-					continue;
-				}
-
-				break;
-			}
-			if (count == 3)
-			{
-				printf("Too big numb of wrong input\nReturn to menu\n\n");
+				printf("Can't delete this elem - there is no this key\n");
 				continue;
 			}
-			
-			table_delete_by_key(t, key);
 
 			printf("\nElement deleted\n");
+			free(key);
 		}
 		else if (command == 3)
 		{
+			key = readline("Input key: ");
 			flag = 1;
 			count = 1;
-			flag = set_unsigned_item_numb(&key, "Input key: ");
+			flag = set_size_t_item_numb(&release, "Input release: ");
 			while (count < 3)
 			{
 				if (flag == INPUT_ERROR)
@@ -93,7 +72,7 @@ char menu(Hash_table* h)
 
 				if (flag == BAD_INPUT)
 				{
-					flag = set_unsigned_item_numb(&key, "Input_key: ");
+					flag = set_size_t_item_numb(&release, "Input_key: ");
 					count++;
 					continue;
 				}
@@ -106,48 +85,52 @@ char menu(Hash_table* h)
 				continue;
 			}
 
-			Item ans = get_elem_with_this_key(t, key);
-			
-			if (ans.data == NULL)
+			flag = hash_table_delete_by_key_and_version(h, key, strlen(key)+1, release);
+
+			if (flag == HASH_TABLE_FIND_ERROR)
 			{
-				printf("\nBad key, there is no elem in thos table\n");
+				printf("Can't delete this elem - there is no this key\n");
+				continue;
 			}
-			else
-			{
-				printf("\nElem - %d\n", *ans.data);
-				free(ans.data);
-			}
+
+			printf("\nElement deleted\n");
+			free(key);
 		}
-		*/
 		else if (command == 4)
 		{
-			char* key = readline("Input key: ");
+			key = readline("Input key: ");
 			
 			Hash_table* ans = hash_table_init(h->capacity);
-			flag = hash_table_search(h, key, strlen(key)+1, ans);
-			if (flag == HASH_TABLE_FIND_ERROR)
+
+			if (ans == NULL)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+
+			flag = hash_table_search_by_key(h, key, strlen(key)+1, ans);
+			if (flag == HASH_TABLE_MEMORY_ERROR)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+			else if (flag == HASH_TABLE_FIND_ERROR)
 			{
 				printf("Can't find elems with this key\n");
 			}
-
-			if (flag == HASH_TABLE_MEMORY_ERROR)
+			else
 			{
-				printf("Memory error\n");
-				return flag;
+				printf("\nTable with elems with this key\n\n");
+				hash_table_print(ans);
 			}
 
-			printf("\nTable with elems with this key\n\n");
-			hash_table_print(ans);
-			
 			hash_table_free(ans);
 			free(key);
 		}
-		/*
 		else if (command == 5)
-		{
+		{	
+			key = readline("Input key: ");
 			flag = 1;
 			count = 1;
-			flag = set_unsigned_item_numb(&parent_key, "Input parent key: ");
+			flag = set_size_t_item_numb(&release, "Input release: ");
 			while (count < 3)
 			{
 				if (flag == INPUT_ERROR)
@@ -157,7 +140,7 @@ char menu(Hash_table* h)
 
 				if (flag == BAD_INPUT)
 				{
-					flag = set_unsigned_item_numb(&parent_key, "Input parent key: ");
+					flag = set_size_t_item_numb(&release, "Input_key: ");
 					count++;
 					continue;
 				}
@@ -169,13 +152,34 @@ char menu(Hash_table* h)
 				printf("Too big numb of wrong input\nReturn to menu\n\n");
 				continue;
 			}
-
-			Table* ans = table_search_by_parent_key(t, parent_key);
 			
-			table_print(ans);
-			table_free(ans);
+			Node* ans = (Node*) malloc(sizeof(Node));
+
+			if (ans == NULL)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+
+			flag = hash_table_search_by_key_and_version(h, key, strlen(key)+1, release, ans);
+			if (flag == HASH_TABLE_MEMORY_ERROR)
+			{
+				return HASH_TABLE_MEMORY_ERROR;
+			}
+			else if (flag == HASH_TABLE_FIND_ERROR)
+			{
+				printf("Can't find elems with this key\n");
+			}
+			else
+			{
+				printf("\nElem with this key:\n");
+				printf("Data - %s, relese - %zu\n", (char*)ans->data->data_ptr, ans->release);
+			}
+
+			free(ans->data->data_ptr);
+			free(ans->data);
+			free(ans);
+			free(key);
 		}
-		*/
 		else if (command == 6)
 		{
 			hash_table_print(h);
@@ -196,10 +200,8 @@ void print_menu()
 	printf("2 - delete all elements with this key\n");
 	printf("3 - delete element with release\n");
 	printf("4 - search all elements with this key\n");
-	printf("5 - search elemetns with release\n");
+	printf("5 - search element with release\n");
 	printf("6 - show table\n");
-	printf("7 - search all elems with parent key\n");
-	printf("8 - import from file\n");
-	printf("9 - exit\n\n");
+	printf("7 - exit\n\n");
 	printf("input command: ");
 }

@@ -15,15 +15,23 @@ int main()
 	else if (flag == BAD_INPUT)
 	{
 		printf("Sorry, too big numb of wrong input\n");
-		return 0;
+		return BAD_INPUT;
 	}
 
 	h = hash_table_init(capacity);
 
-	char c = 2;
-	while (c != OK && c != INPUT_ERROR && c != HASH_TABLE_MEMORY_ERROR)
+	if (h == NULL)
 	{
-		c = menu(h);
+		printf("Memory error\n");
+		return HASH_TABLE_MEMORY_ERROR;
+	}
+
+	flag = menu(h);
+	if (flag == HASH_TABLE_MEMORY_ERROR)
+	{
+		printf("Memory error\n");
+		
+		return HASH_TABLE_MEMORY_ERROR;
 	}
 
 	hash_table_free(h);
