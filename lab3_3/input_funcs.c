@@ -94,6 +94,7 @@ char menu(Hash_table* h)
 			if (flag == HASH_TABLE_FIND_ERROR)
 			{
 				printf("Can't delete this elem - there is no this key or release\n");
+				free(key);
 				continue;
 			}
 			else

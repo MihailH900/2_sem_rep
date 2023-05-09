@@ -176,7 +176,7 @@ char hash_table_delete_by_key_and_version(Hash_table* h, void* key_ptr, size_t k
 		if (i < h->capacity)
 		{
 			Node* n_1 = h->key_arr[elem_hash]->variables_list->head;
-			if (n_1->next == NULL || n_1->release == release)
+			if (n_1->next == NULL)
 			{
 				if (n_1->release != release)
 				{
@@ -188,9 +188,22 @@ char hash_table_delete_by_key_and_version(Hash_table* h, void* key_ptr, size_t k
 					free(n_1->data);
 					free(n_1);
 					h->key_arr[elem_hash]->variables_list->head = NULL;
+					free(h->key_arr[elem_hash]->key_ptr);
+					h->key_arr[elem_hash]->key_ptr = NULL;
+					h->key_arr[elem_hash]->key_size = 0;
 
 					return HASH_TABLE_OK;
 				}
+			}
+
+			if (n_1->release == release)
+			{
+				h->key_arr[elem_hash]->variables_list->head = n_1->next;
+				free(n_1->data->data_ptr);
+				free(n_1->data);
+				free(n_1);
+
+				return HASH_TABLE_OK;
 			}
 			else
 			{

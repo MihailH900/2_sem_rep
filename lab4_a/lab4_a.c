@@ -22,6 +22,7 @@ int main()
 	else if (flag == BAD_INPUT)
 	{
 		printf("Sorry, too big numb of wrong input\n");
+		BST_free(tree);
 		return BAD_INPUT;
 	}
 

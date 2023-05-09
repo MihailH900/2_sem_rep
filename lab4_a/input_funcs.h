@@ -6,6 +6,6 @@
 
 char menu(BST* tree);
 void print_menu();
-char get_params_for_add(BST* tree, unsigned int* key, unsigned int* data);
+char get_params_for_add(BST* tree, Key* k, Data* d);
 
 #endif
