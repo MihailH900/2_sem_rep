@@ -246,7 +246,7 @@ char menu(Hash_table* h)
 				}
 				else if (flag == HASH_TABLE_FIND_ERROR_ITERATOR_RESET)
 				{
-					printf("Can't find elem with this key, elem had deleted\n");
+					printf("Iterator was reset, try this command again\n");
 					free(key_for_iterative_search);
 					key_for_iterative_search = NULL;
 					free(ans);
@@ -254,7 +254,7 @@ char menu(Hash_table* h)
 				}
 				else if (flag == HASH_TABLE_FIND_ERROR_END_OF_LIST)
 				{
-					printf("End of elems with this key\n");
+					printf("End of elems with this key. Try this command again\n");
 					free(key_for_iterative_search);
 					key_for_iterative_search = NULL;
 					free(ans);
@@ -262,7 +262,6 @@ char menu(Hash_table* h)
 				}
 				else
 				{
-					
 					printf("\nElem with this key:\n");
 					printf("Data - %s, relese - %zu\n", (char*)ans->data->data_ptr, ans->release);
 				}
