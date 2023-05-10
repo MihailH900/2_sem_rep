@@ -31,6 +31,8 @@ typedef struct Key
 	void* key_ptr;
 	size_t key_size;
 
+	char was_removal;
+
 	List* variables_list;
 } Key;
 
@@ -48,7 +50,10 @@ typedef enum Hash_table_codes
 	HASH_TABLE_MEMORY_ERROR,
 	HASH_TABLE_ADD_SIZE_ERROR,
 	HASH_TABLE_FIND_ERROR,
-	HASH_TABLE_FIND_ERROR_WITHOUT_NULL
+	HASH_TABLE_FIND_NULL_POS,
+	HASH_TABLE_FIND_ERROR_WITHOUT_NULL,
+	HASH_TABLE_FIND_ERROR_ITERATOR_RESET,
+	HASH_TABLE_FIND_ERROR_END_OF_LIST
 } Table_codes;
 
 Hash_table* hash_table_init(size_t capacity);
@@ -57,6 +62,7 @@ char hash_table_delete_by_key(Hash_table* h, void* key_ptr, size_t key_size);
 char hash_table_delete_by_key_and_version(Hash_table* h, void* key_ptr, size_t key_size, size_t release);
 char hash_table_search_by_key(Hash_table* h, void* key_ptr, size_t key_size, Hash_table* ans);
 char hash_table_search_by_key_and_version(Hash_table* h, void* key_ptr, size_t key_size, size_t key_release, Node* ans);
+char hash_table_search_as_iterator(Hash_table* h, void* key_ptr, size_t key_size, Node* ans);
 size_t get_elem_pos(Hash_table* h, void* key_ptr, size_t key_size, char* flag);
 void hash_table_print(Hash_table* h);
 void hash_table_free(Hash_table* h);

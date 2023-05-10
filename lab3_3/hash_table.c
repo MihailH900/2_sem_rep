@@ -30,6 +30,7 @@ Hash_table* hash_table_init(size_t capacity)
 		}
 
 		(*k)->key_ptr = NULL;
+		(*k)->was_removal = 0;
 		(*k)->key_size = 0;
 
 		(*k)->variables_list = (List*) malloc(sizeof(List));
@@ -57,7 +58,7 @@ char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_pt
 			return HASH_TABLE_ADD_SIZE_ERROR;
 		}
 
-		if (flag == HASH_TABLE_FIND_ERROR)
+		if (flag == HASH_TABLE_FIND_NULL_POS)
 		{
 			h->key_arr[elem_hash]->key_ptr = malloc(key_size);
 			if (h->key_arr[elem_hash]->key_ptr == NULL)
@@ -66,6 +67,7 @@ char hash_table_add(Hash_table* h, void* key_ptr, size_t key_size, void* data_pt
 			}
 			memcpy(h->key_arr[elem_hash]->key_ptr, key_ptr, key_size);
 			h->key_arr[elem_hash]->key_size = key_size;
+			h->key_arr[elem_hash]->was_removal = 0;	
 
 			h->size++;
 			
@@ -132,6 +134,7 @@ char hash_table_delete_by_key(Hash_table* h, void* key_ptr, size_t key_size)
 			h->key_arr[elem_hash]->variables_list->head = NULL;
 			free(h->key_arr[elem_hash]->key_ptr);
 			h->key_arr[elem_hash]->key_ptr = NULL;
+			h->key_arr[elem_hash]->was_removal = 1;
 			h->key_arr[elem_hash]->key_size = 0;
 		
 			h->size--;
@@ -198,6 +201,7 @@ char hash_table_delete_by_key_and_version(Hash_table* h, void* key_ptr, size_t k
 
 			if (n_1->release == release)
 			{
+				h->key_arr[elem_hash]->was_removal = 1;
 				h->key_arr[elem_hash]->variables_list->head = n_1->next;
 				free(n_1->data->data_ptr);
 				free(n_1->data);
@@ -212,6 +216,7 @@ char hash_table_delete_by_key_and_version(Hash_table* h, void* key_ptr, size_t k
 				{
 					if (n_2->release == release)
 					{
+						h->key_arr[elem_hash]->was_removal = 1;
 						n_1->next = n_2->next;
 						free(n_2->data->data_ptr);
 						free(n_2->data);
@@ -363,6 +368,102 @@ char hash_table_search_by_key_and_version(Hash_table* h, void* key_ptr, size_t k
 	}
 }
 
+char hash_table_search_as_iterator(Hash_table* h, void* key_ptr, size_t key_size, Node* ans)
+{
+	static size_t elem_hash;
+	static Node* n_now;
+
+	if (key_ptr != NULL)
+	{
+		elem_hash = hash_function(key_ptr, key_size) % h->capacity;
+
+		if (h->key_arr[elem_hash]->variables_list->head != NULL)
+		{
+			size_t i = 0;
+			if (h->key_arr[elem_hash]->key_size != key_size || check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) )
+			{
+				while (i < h->capacity)
+				{
+					elem_hash = add_hash(elem_hash, h->capacity) % h->capacity;
+				
+					if (h->key_arr[elem_hash]->key_ptr == NULL)
+					{
+						continue;
+					}
+
+					if (h->key_arr[elem_hash]->key_size == key_size && check_equal(h->key_arr[elem_hash]->key_ptr, key_ptr, min(h->key_arr[elem_hash]->key_size, key_size) ) == 0 )
+					{
+						break;
+					}
+
+					i++;
+				}
+			}
+
+			if (i < h->capacity)
+			{
+				n_now = h->key_arr[elem_hash]->variables_list->head;
+				
+				ans->release = n_now->release;
+				ans->data = (Item*) malloc(sizeof(Item));
+				if (ans->data == NULL)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+
+				ans->data->data_ptr = malloc(n_now->data->data_size);
+				if (ans->data->data_ptr == NULL)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+
+				memcpy(ans->data->data_ptr, n_now->data->data_ptr, n_now->data->data_size);
+				ans->data->data_size = n_now->data->data_size;
+				ans->next = NULL;
+
+				return HASH_TABLE_OK;
+			}
+		}
+		else
+		{
+			return HASH_TABLE_FIND_ERROR;
+		}
+	}
+	else
+	{
+		if (h->key_arr[elem_hash]->was_removal == 1)
+		{
+			return HASH_TABLE_FIND_ERROR_ITERATOR_RESET;
+		}
+
+		if (n_now->next == NULL)
+		{
+			return HASH_TABLE_FIND_ERROR_END_OF_LIST;
+		}
+
+		n_now = n_now->next;
+
+		ans->release = n_now->release;
+		ans->data = (Item*) malloc(sizeof(Item));
+		if (ans->data == NULL)
+		{
+			return HASH_TABLE_MEMORY_ERROR;
+		}
+
+		ans->data->data_ptr = malloc(n_now->data->data_size);
+		if (ans->data->data_ptr == NULL)
+		{
+			return HASH_TABLE_MEMORY_ERROR;
+		}
+
+		memcpy(ans->data->data_ptr, n_now->data->data_ptr, n_now->data->data_size);
+		ans->data->data_size = n_now->data->data_size;
+		ans->next = NULL;
+		
+		return HASH_TABLE_OK;
+	}
+}
+
 size_t get_elem_pos(Hash_table* h, void* key_ptr, size_t key_size, char* flag)
 {
 	size_t elem_hash = hash_function(key_ptr, key_size) % h->capacity;
@@ -410,14 +511,14 @@ size_t get_elem_pos(Hash_table* h, void* key_ptr, size_t key_size, char* flag)
 		}
 		else
 		{
-			(*flag) = HASH_TABLE_FIND_ERROR;
+			(*flag) = HASH_TABLE_FIND_NULL_POS;
 		}
 
 		return pos;
 	}
 	else
 	{
-		(*flag) = HASH_TABLE_FIND_ERROR;
+		(*flag) = HASH_TABLE_FIND_NULL_POS;
 		return elem_hash;
 	}
 }

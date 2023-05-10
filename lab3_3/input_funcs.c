@@ -10,14 +10,15 @@ char menu(Hash_table* h)
 	char flag, count;
 	command_type command = 0;
 	char* key;
+	char* key_for_iterative_search = NULL;
 	char* data;
 	size_t release;
-	while (command != 7)
+	while (command != 8)
 	{
 		print_menu();
 		command = get_size_t_numb(&flag);
 
-		if (flag == INPUT_ERROR || command == 7)
+		if (flag == INPUT_ERROR || command == 8)
 		{
 			printf("End of input\n");
 			return INPUT_ERROR;
@@ -193,6 +194,87 @@ char menu(Hash_table* h)
 		}
 		else if (command == 6)
 		{
+			if (key_for_iterative_search == NULL)
+			{
+				key_for_iterative_search = readline("input key: ");
+				
+				Node* ans = (Node*) malloc(sizeof(Node));
+
+				if (ans == NULL)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+
+				flag = hash_table_search_as_iterator(h, key_for_iterative_search, strlen(key_for_iterative_search)+1, ans);
+
+				if (flag == HASH_TABLE_MEMORY_ERROR)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+				else if (flag == HASH_TABLE_FIND_ERROR)
+				{
+					printf("Can't find elem with this key and release\n");
+					free(key_for_iterative_search);
+					key_for_iterative_search = NULL;
+					free(ans);
+					continue;
+				}
+				else
+				{
+					printf("\nElem with this key:\n");
+					printf("Data - %s, relese - %zu\n", (char*)ans->data->data_ptr, ans->release);
+				}
+	
+				free(ans->data->data_ptr);
+				free(ans->data);
+				free(ans);
+			}
+			else
+			{
+				Node* ans = (Node*) malloc(sizeof(Node));
+
+				if (ans == NULL)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+
+				flag = hash_table_search_as_iterator(h, NULL, strlen(key_for_iterative_search)+1, ans);
+
+				if (flag == HASH_TABLE_MEMORY_ERROR)
+				{
+					return HASH_TABLE_MEMORY_ERROR;
+				}
+				else if (flag == HASH_TABLE_FIND_ERROR_ITERATOR_RESET)
+				{
+					printf("Can't find elem with this key, elem had deleted\n");
+					free(key_for_iterative_search);
+					key_for_iterative_search = NULL;
+					free(ans);
+					continue;
+				}
+				else if (flag == HASH_TABLE_FIND_ERROR_END_OF_LIST)
+				{
+					printf("End of elems with this key\n");
+					free(key_for_iterative_search);
+					key_for_iterative_search = NULL;
+					free(ans);
+					continue;
+				}
+				else
+				{
+					
+					printf("\nElem with this key:\n");
+					printf("Data - %s, relese - %zu\n", (char*)ans->data->data_ptr, ans->release);
+				}
+
+				free(ans->data->data_ptr);
+				free(ans->data);
+				free(ans);
+			}
+
+		}
+		else if (command == 7)
+		{
 			hash_table_print(h);
 		}
 		else
@@ -212,7 +294,8 @@ void print_menu()
 	printf("3 - delete element with release\n");
 	printf("4 - search all elements with this key\n");
 	printf("5 - search element with release\n");
-	printf("6 - show table\n");
-	printf("7 - exit\n\n");
+	printf("6 - iterative search\n");
+	printf("7 - show table\n");
+	printf("8 - exit\n\n");
 	printf("input command: ");
 }
